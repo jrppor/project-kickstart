@@ -48,7 +48,7 @@ cmd //c mklink /J "%USERPROFILE%\.claude\skills\kickstart" "C:\Coding\project-ki
 | [01-playbook.md](01-playbook.md) | แผนละเอียด: เป้าหมาย สิ่งที่ทำ เกณฑ์ "เสร็จ" และกับดักของแต่ละขั้น พร้อมเช็กลิสต์หน้าเดียว |
 | [skill/SKILL.md](skill/SKILL.md) | สกิล `/kickstart`: หาขั้นปัจจุบันจาก `docs/progress.md` และไฟล์ใน repo · ทำขั้นที่ Claude ทำเองได้ · บอกคำสั่งที่คุณต้องพิมพ์เอง |
 | [02-prompts.md](02-prompts.md) | พรอมต์ P0–P9 ที่ `/kickstart` อ่านไปทำ (คัดลอกใช้เองได้) |
-| [04-owner-defaults.md](04-owner-defaults.md) | ค่าตั้งต้นที่เจ้าของเลือกซ้ำ (โครงโฟลเดอร์ stack auth DB หน้าตา ฟอนต์ วิธีทำงาน) ขั้น 2, 2.5 และ 4 ใช้แทนการถามใหม่ทุกข้อ |
+| [04-owner-preferences.md](04-owner-preferences.md) | หลักที่ใช้ทุกโปรเจกต์ (โครงที่องค์กรคุ้นเคย ชื่อ secret หน้าตาระบบหลังบ้าน วิธีถามและ commit) และประวัติการเลือก stack ของโปรเจกต์ก่อนๆ ไว้ประกอบการเสนอตัวเลือก ไม่ใช่ค่าตั้งต้น |
 | [03-project-shapes.md](03-project-shapes.md) | รูปแบบโปรเจกต์ทุกแบบ: โครงเปล่าที่รันได้ · วิธีให้ Claude ดูผลเอง · ด่านตรวจ · หมวดมาตรฐานที่ต้องเก็บ |
 | [templates/CLAUDE.md](templates/CLAUDE.md) | โครง CLAUDE.md: รูปแบบและส่วนประกอบ · คำสั่ง · วิธีดูผลงานจริง · ด่านตรวจ · ข้อควรรู้ |
 | [templates/CODING_STANDARDS.md](templates/CODING_STANDARDS.md) | มาตรฐานโค้ดที่ `/code-review` ใช้ตรวจ: ส่วนกลางทุกโปรเจกต์ · หมวดตามส่วนประกอบ (SQL, API, FE, UI, APP, CLI, WORKER, LIB) · ภาคผนวกโดเมน (เงิน ธนาคาร หลักทรัพย์ audit) · ภาคผนวกภาษา (Go, C#, Java, TS/React/Next.js, Angular) |
