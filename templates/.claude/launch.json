@@ -1,0 +1,22 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ui",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "ui", "run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "go",
+      "runtimeArgs": ["run", "./api/cmd/api"],
+      "port": 8080
+    },
+    {
+      "name": "stack (docker compose)",
+      "url": "http://localhost:3000",
+      "port": 3000
+    }
+  ]
+}

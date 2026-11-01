@@ -1,0 +1,4 @@
+
+# claude code (commit .claude/settings.json, hooks/ and launch.json; keep these out)
+.claude/worktrees/
+.claude/settings.local.json
