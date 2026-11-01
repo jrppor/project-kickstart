@@ -20,8 +20,11 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const CHECKS = [
-  // Go
-  // { name: "api", area: /^api\/.*\.(go|mod|sum)$/, cwd: "api", cmds: ["go build ./...", "go vet ./..."] },
+  // Go: หนึ่งชุดต่อ go module (ไม่ใช่ต่อโดเมน) area รวมไฟล์ที่ถูก go:embed ด้วย เช่น สัญญา SQL template
+  // module อยู่ที่รากคลัง
+  // { name: "go", area: /\.(go|mod|sum|sql|gohtml|yaml)$/, cwd: ".", cmds: ["go build ./...", "go vet ./...", "go test -short ./..."] },
+  // module อยู่ในโฟลเดอร์ api/ ของคลังที่มีหลายส่วนประกอบ
+  // { name: "api", area: /^api\/.*\.(go|mod|sum|sql)$/, cwd: "api", cmds: ["go build ./...", "go vet ./..."] },
   //
   // Node / Next.js / TypeScript (ไฟล์สัญญา API ที่ ui ใช้อยู่ใน area ด้วย แก้สัญญาแล้ว ui ถูกตรวจทันที)
   // { name: "ui", area: /^ui\/.*\.(tsx?|mjs|cjs|js|json)$|^api\/openapi\.json$/, cwd: "ui", needs: "node_modules",

@@ -11,6 +11,10 @@
    (เช่น `/grill-with-docs`, `/to-spec`, `/to-tickets`, `/implement`) กล่องจะบอกบรรทัดที่ต้องพิมพ์
 4. อยากรู้ว่าทำถึงไหน พิมพ์ `/kickstart status` · เริ่มฟีเจอร์ใหม่ พิมพ์ `/kickstart feature <ชื่อ>`
 
+**มีโปรเจกต์อยู่แล้ว?** ไม่ต้องสร้าง repo ใหม่ เปิด session ในโฟลเดอร์ของ repo นั้นแล้วพิมพ์ `/kickstart adopt`
+Claude จะสำรวจแบบอ่านอย่างเดียวก่อน แล้วเพิ่ม CLAUDE.md, ADR ของสิ่งที่ตัดสินไปแล้ว มาตรฐานที่ตรงกับโค้ดเดิม และด่านตรวจ บน branch แยก โดยไม่แก้โค้ดของแอป
+(รายละเอียดอยู่ในหัวข้อ "นำไปใช้กับโปรเจกต์ที่มีอยู่แล้ว" ของ playbook)
+
 ไม่ต้องคัดลอกพรอมต์จาก [02-prompts.md](02-prompts.md) เอง สกิลอ่านไฟล์นั้นให้ (ยังเปิดดูหรือคัดลอกเองได้ถ้าต้องการ)
 
 ### ติดตั้งสกิล `/kickstart` (ครั้งเดียวต่อเครื่อง)
@@ -37,6 +41,8 @@ cmd //c mklink /J "%USERPROFILE%\.claude\skills\kickstart" "C:\Coding\project-ki
 6 ลงมือ                /implement หรือ /implement-spec          P6
 7 รีวิว + merge         /code-review + /security-review + เทสต์ช้า + คนรีวิว   P7
 8 ดูแล                 /diagnosing-bugs · /improve-codebase-architecture · /handoff   P8–P9
+── โปรเจกต์ที่มีอยู่แล้ว ──────────────────────────────────────────────
+A นำเข้า               สำรวจ → แม่แบบ (รวมกับของเดิม) → ADR ย้อนหลัง → ด่านตรวจ แล้วเข้า 4   PA1–PA4
 ```
 
 งานเล็ก (1–3 วัน) ทำแค่ 0 แบบย่อ → 1 → 3 แล้วลงมือด้วย `/tdd` ได้เลย
@@ -47,7 +53,7 @@ cmd //c mklink /J "%USERPROFILE%\.claude\skills\kickstart" "C:\Coding\project-ki
 |---|---|
 | [01-playbook.md](01-playbook.md) | แผนละเอียด: เป้าหมาย สิ่งที่ทำ เกณฑ์ "เสร็จ" และกับดักของแต่ละขั้น พร้อมเช็กลิสต์หน้าเดียว |
 | [skill/SKILL.md](skill/SKILL.md) | สกิล `/kickstart`: หาขั้นปัจจุบันจาก `docs/progress.md` และไฟล์ใน repo · ทำขั้นที่ Claude ทำเองได้ · บอกคำสั่งที่คุณต้องพิมพ์เอง |
-| [02-prompts.md](02-prompts.md) | พรอมต์ P0–P9 ที่ `/kickstart` อ่านไปทำ (คัดลอกใช้เองได้) |
+| [02-prompts.md](02-prompts.md) | พรอมต์ P0–P9 และ PA1–PA4 (โปรเจกต์ที่มีอยู่แล้ว) ที่ `/kickstart` อ่านไปทำ (คัดลอกใช้เองได้) |
 | [04-owner-preferences.md](04-owner-preferences.md) | หลักที่ใช้ทุกโปรเจกต์ ไม่ผูก stack (โครงที่องค์กรคุ้นเคย ชื่อ secret วิธีถามและ commit) แก้ให้ตรงกับวิธีทำงานของคุณได้ |
 | [03-project-shapes.md](03-project-shapes.md) | รูปแบบโปรเจกต์ทุกแบบ: โครงเปล่าที่รันได้ · วิธีให้ Claude ดูผลเอง · ด่านตรวจ · หมวดมาตรฐานที่ต้องเก็บ |
 | [templates/CLAUDE.md](templates/CLAUDE.md) | โครง CLAUDE.md: รูปแบบและส่วนประกอบ · คำสั่ง · วิธีดูผลงานจริง · ด่านตรวจ · ข้อควรรู้ |
