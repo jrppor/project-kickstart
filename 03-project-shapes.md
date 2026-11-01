@@ -51,7 +51,14 @@
 
 **Web API / backend**
 - ถ้าไม่มีหน้าเว็บ ไม่ต้องมี `launch.json` ให้ Claude ดูผลผ่าน integration test และ curl
-- สัญญา API (OpenAPI หรือ proto) คือสิ่งที่ส่งมอบ ให้เขียนตั้งแต่ ticket แรก
+- สัญญา API (OpenAPI หรือ proto) คือสิ่งที่ส่งมอบ ให้เขียนตั้งแต่ ticket แรก และ commit ไฟล์สัญญาพร้อมเทสต์เทียบ (ดูหมายเหตุ Web API + UI ด้านล่าง)
+
+**Web API + UI แยกกัน: สัญญาที่ตรวจได้** (ใช้ได้ผลใน stock-system)
+- backend สร้าง OpenAPI จากโค้ด แล้ว commit ไฟล์สัญญาไว้ (เช่น `backend/openapi.v1.json`) มีเทสต์เทียบสัญญาที่โค้ดสร้างจริงกับไฟล์นั้น อัปเดตด้วยตัวแปรเช่น `UPDATE_OPENAPI=1`
+- ให้เทสต์นี้สร้างสัญญาได้โดยไม่ต้องต่อ DB หรือ Redis จริง จะได้อยู่ในด่านเร็ว (stock-system วางไว้ในชุด functional ที่ต้องมี DB จึงไม่อยู่ในด่าน)
+- ui generate type จากไฟล์สัญญา (`openapi-typescript` → `npm run gen:api`) มีเทสต์ตรวจว่า type ตรงกับสัญญา และใส่ไฟล์สัญญาไว้ใน `area` ของเช็ก ui ใน `verify.mjs`
+- ไฟล์สัญญาและ type ที่ generate ไม่ผ่าน formatter (เช่น ใส่ใน `.prettierignore`) และเมื่อ merge ชนกัน ให้สร้างใหม่ แทนการแก้ conflict
+- .NET: ตั้ง `JsonNumberHandling.Strict` ไม่อย่างนั้นสัญญาจะประกาศตัวเลขเป็น `integer|string`
 
 **เว็บ full-stack**
 - server action และ route handler คือ endpoint ต้องตรวจสิทธิ์ทุกตัวเหมือน API
@@ -75,5 +82,10 @@
 - ตัวอย่างการใช้ต้องรันได้จริงในเทสต์ ไม่ใช่แค่โค้ดใน README
 
 **หลายส่วนประกอบในคลังเดียว**
-- แยกโฟลเดอร์ต่อส่วนประกอบ แล้วตั้ง `CHECKS` แยกต่อโฟลเดอร์ ด่านจะรันเฉพาะส่วนที่แก้
+- แยกโฟลเดอร์ต่อส่วนประกอบตั้งแต่วันแรก (เช่น `backend/`, `ui/`, `database/`) แล้วตั้ง `CHECKS` แยกต่อโฟลเดอร์ ด่านจะรันเฉพาะส่วนที่แก้
+  ไฟล์ตั้งค่าที่รากคลังที่กระทบ build (เช่น `Directory.Build.props`, `global.json`, `.editorconfig`) ใส่ไว้ใน `area` ของส่วนที่ได้รับผลด้วย
 - โครงเปล่าต้องพิสูจน์ว่าทุกส่วนต่อกันได้จริงอย่างน้อยหนึ่งเส้นทาง
+- รันทุกส่วนด้วย `scripts/run.mjs <ส่วนประกอบ>` (แม่แบบใน `templates/scripts/`) โหลด secret จาก `.env` ที่ไม่เข้า git และสร้าง secret ของ dev ให้เองครั้งแรก
+- บริการที่เครื่อง dev อาจมีอยู่แล้วและใช้ร่วมกับโปรเจกต์อื่น (Postgres, Redis) ใส่ใน compose profile แยก (เช่น `standalone`) แล้วให้พอร์ตตั้งค่าได้
+- DB และ Redis ของเทสต์แยกจากของ dev (เช่น `app` / `app_test` / `app_demo` และ Redis คนละ logical db) และรับชื่อจาก environment
+  ให้ worktree ของ agent หลายตัวรันเทสต์ช้าพร้อมกันได้ ตัวช่วยล้างข้อมูลต้องไม่ยอมล้าง DB ของ dev

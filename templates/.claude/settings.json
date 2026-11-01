@@ -8,16 +8,25 @@
       "Bash(git * --no-verify*)",
       "PowerShell(git push --force *)",
       "PowerShell(git push -f *)",
-      "PowerShell(git * --no-verify*)"
+      "PowerShell(git * --no-verify*)",
+      "Read(**/.env)",
+      "Read(**/.env.local)"
     ],
     "ask": [
       "Bash(git reset --hard*)",
       "Bash(git clean *)",
       "Bash(git branch -D *)",
+      "Bash(git checkout -- *)",
+      "Bash(git restore *)",
+      "Bash(git stash drop*)",
+      "Bash(git worktree remove --force*)",
+      "Bash(rm -rf *)",
       "Bash(docker compose down -v*)",
       "Bash(docker volume rm *)",
       "PowerShell(git reset --hard*)",
       "PowerShell(git clean *)",
+      "PowerShell(git checkout -- *)",
+      "PowerShell(git worktree remove --force*)",
       "PowerShell(docker compose down -v*)",
       "PowerShell(Remove-Item *-Recurse*)"
     ]
@@ -42,6 +51,17 @@
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/verify.mjs\" stop",
             "timeout": 300
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/verify.mjs\" subagent-stop",
+            "timeout": 600
           }
         ]
       }

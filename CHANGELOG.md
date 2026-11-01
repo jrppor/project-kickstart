@@ -3,6 +3,34 @@
 ทุกการเปลี่ยนแปลงของชุดนี้บันทึกที่นี่: เปลี่ยนอะไร · เพราะอะไร · ลองกับโปรเจกต์ไหนแล้ว
 รายการใหม่อยู่บนสุด
 
+## 2026-11-01 · แก้ตามผลตรวจ stock-system
+
+ตรวจจากประวัติ session ของ stock-system (14:14–18:13 · ขั้น 0–6) และไฟล์ใน repo แบบอ่านอย่างเดียว เจ้าของสั่ง "แก้ทั้งหมด"
+
+**ข้อบกพร่อง**
+- **แก้** ด่านตรวจไม่ครอบคลุม agent ใน worktree: `Stop` ไม่ทำงานตอน agent ย่อยจบ ทั้ง 6 agent ของ `/implement-spec` จึงไม่ผ่านด่าน → เพิ่ม hook `SubagentStop` และโหมด `subagent-stop` ใน `verify.mjs` (ตรวจเฉพาะ agent ที่ทำงานใน worktree ของตัวเอง หา worktree จาก `cwd` หรือ transcript ของ agent)
+- **แก้** worktree ที่ยังไม่เคยผ่านด่านไม่มีจุดเทียบ จึงไม่เห็นงานที่ agent commit ไปแล้ว → เทียบกับจุดเริ่มของ worktree (`CLAUDE_BASE` หรือ merge-base กับตัวหลัก)
+- **แก้** ด่านปิดตัวเองเงียบๆ 33 ครั้งเมื่อ Bash `cd` ออกนอก repo → ใช้ `CLAUDE_PROJECT_DIR` เป็นทางสำรอง และไม่ตรวจ repo อื่นแทน
+- **เพิ่ม** `cmds` เป็นฟังก์ชันที่รับไฟล์ที่เปลี่ยนได้ (stock-system ตรวจแค่ `run.mjs` ทั้งที่ area ครอบทุกสคริปต์) · formatter มี `needs` · ตัวอย่าง .NET ใช้ solution filter และ `dotnet test` ครั้งเดียว
+- **แก้** `node --test scripts/` ใช้ไม่ได้บน Node 22+ → `node --test "scripts/*.test.mjs"`
+- **แก้** `/kickstart` อ่านสถานะ ticket จาก `Status:` อย่างเดียว (ไม่มีใครแก้) → อ่านคำเรียกจาก `docs/agents/issue-tracker.md` และ trailer `Ticket: <feature>/<NN>` ใน `git log --all` · แยกประเภท worktree (locked · merge ค้าง · สะอาด · กำพร้า) · ซ่อมโปรเจกต์เก่า (หัวข้อใน CLAUDE.md, `SubagentStop`, `.worktreeinclude`) · คำสั่งในกล่องต้องเติมค่าจริงและขึ้นบรรทัดด้วย `/`
+
+**ประหยัดเวลา**
+- **เพิ่ม** `04-owner-defaults.md` ค่าตั้งต้นที่เจ้าของเลือกเอง (Clean Architecture ไม่ใช้ MediatR · Controllers · JWT + Redis · DB-first · MUI theme ค่าเริ่มต้น · Noto Sans Thai · ระบบหลังบ้านไม่ใช้สไตล์ bold) ขั้น 2, 2.5 และ 4 ใช้แทนการถามใหม่ (stock-system ค้าน 5 ข้อ และทำ UI ใหม่หนึ่งรอบ)
+- **เปลี่ยน** ขั้น 3 แบ่งเป็น 3a ผังโฟลเดอร์ (รออนุมัติ) กับ 3b · ADR ต้องมีผังโฟลเดอร์จริง · ห้ามสร้างไฟล์ก่อนผังผ่าน · หยุด dev/build server ก่อนย้ายไฟล์ (stock-system สร้างโครงสองรอบและย้ายเข้า `backend/` อีกรอบ ~40 นาที)
+- **เปลี่ยน** ขั้น 2, 2.5a, 4 ถามเป็นชุดรอบเดียว ตอบ "ตามแนะนำ ยกเว้น X" · commit เองเมื่อจบขั้น (ไม่ push) · เปิด session ใหม่ก่อนขั้น 4 และ 6
+- **เพิ่ม** กติกาของ P5: งานที่หลายใบใช้ร่วมอยู่ใบเดียว · ไม่มีใบเอกสารตอนท้าย (GEN-4) · เส้นทาง blocked by ไม่เกินครึ่ง · ไม่เกิน ~10 เกณฑ์ต่อใบ
+- **เพิ่ม** กติกาของ P6b: เตรียม worktree · ไม่ใช้ heredoc · พอร์ตของตัวเอง · เทสต์ที่ใช้ DB ร่วมห้ามรันพร้อมกัน · trailer `Ticket:` · สร้างไฟล์ generate ใหม่หลัง merge
+- **เพิ่ม** ขั้น 2.5: token อยู่ที่เดียว (`docs/design/tokens.css`) · ห้ามข้าม `tokens-preview.html` · ให้เห็นร่างแรกก่อนขัดเกลา
+
+**นำกลับจากโปรเจกต์**
+- **เพิ่ม** `templates/scripts/` (`run.mjs` + `dev-env.mjs` + เทสต์) · `.worktreeinclude` · `.gitattributes` · `launch.json` เรียก `node scripts/run.mjs` (เลิก `go run` และ python)
+- **เพิ่ม** สูตร "สัญญาที่ตรวจได้" ของ Web API + UI ใน `03-project-shapes.md` (API-6) · แยก DB/Redis ของเทสต์ต่อ worktree (TEST-11) · compose profile สำหรับบริการที่ใช้ร่วม
+- **เพิ่ม** `settings.json`: deny อ่าน `.env` · ask `git checkout --`, `git restore`, `git stash drop`, `git worktree remove --force`, `rm -rf`
+- **เปลี่ยน** ภาคผนวก STOCK → SECURITIES (ชื่อชนกับระบบสต็อกสินค้า) · เกณฑ์ "ADR 3–6 ฉบับ" → รายการหัวข้อที่ต้องมี · ADR มี Status และวันที่
+- **ไม่ทำ:** ข้ามการตรวจเมื่อเทิร์นมีแค่การ merge (merge อาจทำให้ build พังได้ จึงต้องตรวจเหมือนเดิม) · หาสาเหตุที่รันด่านซ้ำ 9.5 วินาทีทั้งที่ไม่มีอะไรเปลี่ยน (ทำซ้ำไม่ได้จากข้อมูลที่มี)
+  - **ลองแล้วกับ:** `verify.mjs` ทดสอบใน repo จำลอง 8 กรณี และรัน Claude Code จริง (`claude -p` + agent ใน worktree): agent สร้างไฟล์พัง → `SubagentStop` บล็อก → agent แก้แล้ว commit → ผ่าน · `scripts/` ผ่านเทสต์ 3 ข้อและลอง `serve` · ส่วนพรอมต์ แผน และสกิลยังไม่ได้ลองกับโปรเจกต์ใหม่
+
 ## 2026-11-01 · สกิล /kickstart แทนการคัดลอกพรอมต์
 
 - **เพิ่ม** สกิล `skill/SKILL.md` (`/kickstart`) ลิงก์เข้า `~/.claude/skills/kickstart` ด้วย junction: หาขั้นปัจจุบันจาก `docs/progress.md` (หรืออนุมานจากไฟล์ใน repo) · ทำขั้นที่ Claude ทำเองได้ตามพรอมต์ใน `02-prompts.md` · เมื่อถึงสกิลที่ถูกล็อกให้คนพิมพ์ จะเขียนคำสั่งเสริมลง progress.md แล้วบอกบรรทัดสั้นที่ต้องพิมพ์ · โหมด `status`, `feature <ชื่อ>`, `step <N>`, `health`

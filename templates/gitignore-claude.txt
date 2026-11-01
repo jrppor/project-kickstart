@@ -2,3 +2,7 @@
 # claude code (commit .claude/settings.json, hooks/ and launch.json; keep these out)
 .claude/worktrees/
 .claude/settings.local.json
+
+# dev secrets (scripts/run.mjs reads them; .worktreeinclude copies them into agent worktrees)
+.env
+.env.local

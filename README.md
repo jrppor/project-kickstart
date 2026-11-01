@@ -30,7 +30,7 @@ cmd //c mklink /J "%USERPROFILE%\.claude\skills\kickstart" "C:\Coding\project-ki
 1 ตั้ง repo             templates + /setup-matt-pocock-skills  P1
 2 คำศัพท์ + ตัดสินใจ     /grill-with-docs → GLOSSARY.md + ADR    P2
 2.5 ออกแบบหน้าจอ        ADR ด้านการออกแบบ + แผนผังหน้าจอ + prototype (เฉพาะที่มีหน้าจอ)   P2.5
-3 โครงเปล่าที่รันได้      walking skeleton + ด่านตรวจที่พิสูจน์แล้ว  P3
+3 โครงเปล่าที่รันได้      3a ผังโฟลเดอร์ (รออนุมัติ) → 3b walking skeleton + ด่านตรวจ  P3a/P3b
 ── วนต่อฟีเจอร์ ─────────────────────────────────────────────────────
 4 สเปก                 คุย → /to-spec                          P4
 5 ticket               /to-tickets (ชิ้นแนวตั้ง + blocked by)     P5
@@ -48,12 +48,16 @@ cmd //c mklink /J "%USERPROFILE%\.claude\skills\kickstart" "C:\Coding\project-ki
 | [01-playbook.md](01-playbook.md) | แผนละเอียด: เป้าหมาย สิ่งที่ทำ เกณฑ์ "เสร็จ" และกับดักของแต่ละขั้น พร้อมเช็กลิสต์หน้าเดียว |
 | [skill/SKILL.md](skill/SKILL.md) | สกิล `/kickstart`: หาขั้นปัจจุบันจาก `docs/progress.md` และไฟล์ใน repo · ทำขั้นที่ Claude ทำเองได้ · บอกคำสั่งที่คุณต้องพิมพ์เอง |
 | [02-prompts.md](02-prompts.md) | พรอมต์ P0–P9 ที่ `/kickstart` อ่านไปทำ (คัดลอกใช้เองได้) |
+| [04-owner-defaults.md](04-owner-defaults.md) | ค่าตั้งต้นที่เจ้าของเลือกซ้ำ (โครงโฟลเดอร์ stack auth DB หน้าตา ฟอนต์ วิธีทำงาน) ขั้น 2, 2.5 และ 4 ใช้แทนการถามใหม่ทุกข้อ |
 | [03-project-shapes.md](03-project-shapes.md) | รูปแบบโปรเจกต์ทุกแบบ: โครงเปล่าที่รันได้ · วิธีให้ Claude ดูผลเอง · ด่านตรวจ · หมวดมาตรฐานที่ต้องเก็บ |
 | [templates/CLAUDE.md](templates/CLAUDE.md) | โครง CLAUDE.md: รูปแบบและส่วนประกอบ · คำสั่ง · วิธีดูผลงานจริง · ด่านตรวจ · ข้อควรรู้ |
-| [templates/CODING_STANDARDS.md](templates/CODING_STANDARDS.md) | มาตรฐานโค้ดที่ `/code-review` ใช้ตรวจ: ส่วนกลางทุกโปรเจกต์ · หมวดตามส่วนประกอบ (SQL, API, FE, UI, APP, CLI, WORKER, LIB) · ภาคผนวกโดเมน (เงิน ธนาคาร หุ้น audit) · ภาคผนวกภาษา (Go, C#, Java, TS/React/Next.js, Angular) |
-| [templates/.claude/settings.json](templates/.claude/settings.json) | กฎห้าม (force push, `--no-verify`) · กฎที่ต้องถามก่อน (reset --hard, clean, down -v) · ต่อ hooks |
-| [templates/.claude/hooks/verify.mjs](templates/.claude/hooks/verify.mjs) | ด่านตรวจก่อนจบเทิร์นที่รันเฉพาะส่วนที่เปลี่ยน มี formatter หลังแก้ไฟล์ และตัวอย่าง `CHECKS` ของ Go, Node, .NET, Python, Flutter และโปรเจกต์ส่วนเดียว |
-| [templates/.claude/launch.json](templates/.claude/launch.json) | เฉพาะโปรเจกต์ที่มีหน้าเว็บ: ให้ Claude เปิด dev server ใน browser pane เอง |
+| [templates/CODING_STANDARDS.md](templates/CODING_STANDARDS.md) | มาตรฐานโค้ดที่ `/code-review` ใช้ตรวจ: ส่วนกลางทุกโปรเจกต์ · หมวดตามส่วนประกอบ (SQL, API, FE, UI, APP, CLI, WORKER, LIB) · ภาคผนวกโดเมน (เงิน ธนาคาร หลักทรัพย์ audit) · ภาคผนวกภาษา (Go, C#, Java, TS/React/Next.js, Angular) |
+| [templates/.claude/settings.json](templates/.claude/settings.json) | กฎห้าม (force push, `--no-verify`, อ่าน `.env`) · กฎที่ต้องถามก่อน (reset --hard, clean, checkout --, worktree remove --force, rm -rf, down -v) · ต่อ hooks `PostToolUse`, `Stop` และ `SubagentStop` |
+| [templates/.claude/hooks/verify.mjs](templates/.claude/hooks/verify.mjs) | ด่านตรวจที่รันเฉพาะส่วนที่เปลี่ยน ก่อนจบเทิร์นของ session หลักและก่อน agent ใน worktree ส่งงาน มี formatter หลังแก้ไฟล์ และตัวอย่าง `CHECKS` ของ Go, Node, .NET (solution filter), Python, Flutter, สคริปต์ของคลัง และโปรเจกต์ส่วนเดียว |
+| [templates/.claude/launch.json](templates/.claude/launch.json) | เฉพาะโปรเจกต์ที่มีหน้าเว็บ: ให้ Claude เปิด dev server และ prototype ใน browser pane เอง ผ่าน `scripts/run.mjs` |
+| [templates/scripts/](templates/scripts/) | `run.mjs` รันทีละส่วนประกอบโดยโหลด secret จาก `.env` และสร้าง secret ของ dev ให้ครั้งแรก · `serve` เปิดไฟล์ HTML นิ่ง · `dev-env.mjs` พร้อมเทสต์ |
+| [templates/.worktreeinclude](templates/.worktreeinclude) | ไฟล์ที่ git ignore แต่ worktree ของ agent ต้องมี (`.env`) Claude Code คัดลอกให้ตอนสร้าง worktree |
+| [templates/.gitattributes](templates/.gitattributes) | เก็บไฟล์ข้อความเป็น LF ไม่ให้ diff และ worktree เต็มไปด้วยคำเตือน LF/CRLF |
 | [templates/gitignore-claude.txt](templates/gitignore-claude.txt) | บรรทัดสำหรับ `.gitignore` (ignore เฉพาะ worktree กับ settings ส่วนตัว) |
 | [CHANGELOG.md](CHANGELOG.md) | ประวัติการเปลี่ยนแปลงของชุดนี้ พร้อมเหตุผลและโปรเจกต์ที่ลองแล้ว |
 | [ideas.md](ideas.md) | ใบเสนอของใหม่ พร้อมข้อดีข้อเสียและช่องอนุมัติของเจ้าของ |
@@ -68,7 +72,7 @@ cmd //c mklink /J "%USERPROFILE%\.claude\skills\kickstart" "C:\Coding\project-ki
 ## ข้อควรจำ
 
 - **เปิด session ในโฟลเดอร์โปรเจกต์เสมอ** ถ้าไม่ทำ hooks และกฎใน `.claude/settings.json` ของโปรเจกต์จะไม่ถูกโหลด
-- **commit `.claude/` (ยกเว้น worktrees กับ settings.local.json)** เพื่อให้ worktree ของ agent ได้ด่านตรวจไปด้วย
+- **commit `.claude/` (ยกเว้น worktrees กับ settings.local.json)** เพื่อให้ worktree ของ agent ได้ด่านตรวจไปด้วย ด่านของ agent ทำงานผ่าน hook `SubagentStop` (hook `Stop` ไม่ทำงานตอน agent ย่อยจบ)
 - **ด่านตรวจต้องเร็ว** แต่ละชุดไม่ควรเกินราว 30 วินาที เทสต์ช้าให้เขียนใน CLAUDE.md ว่ารันก่อน commit
 - **ถ้าแก้ `verify.mjs` ในโปรเจกต์ไหนแล้วดีขึ้น** ให้นำกลับมาอัปเดตที่ `templates/` ด้วย ส่วนท้ายไฟล์ (ตั้งแต่ `OUTPUT_TAIL_LINES` ลงไป) เหมือนกันทุกโปรเจกต์
 

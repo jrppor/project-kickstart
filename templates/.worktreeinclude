@@ -1,0 +1,5 @@
+# ไฟล์ที่ git ignore แต่ worktree ของ agent ต้องมี Claude Code คัดลอกให้ตอนสร้าง worktree (syntax เดียวกับ .gitignore)
+# ใช้กับ subagent ที่รันใน worktree (/implement-spec) และ claude --worktree ใส่เฉพาะไฟล์เล็ก
+# dependency ขนาดใหญ่ (node_modules, .venv) ไม่ต้องใส่ ให้ติดตั้งใหม่ตามหัวข้อ "เตรียม worktree" ใน CLAUDE.md
+.env
+.env.local

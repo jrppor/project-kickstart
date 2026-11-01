@@ -1,0 +1,11 @@
+# ทุกไฟล์ข้อความเก็บเป็น LF ไม่ให้ worktree และ diff เต็มไปด้วยคำเตือน LF/CRLF บน Windows
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.sln text eol=crlf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff2 binary
