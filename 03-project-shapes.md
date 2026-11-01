@@ -27,7 +27,7 @@
 | **Web API / backend** | Go + Gin · ASP.NET Core · Spring Boot · NestJS | `/healthz` ที่ต่อที่เก็บข้อมูลจริง + endpoint ของโดเมนหนึ่งตัว | integration test ผ่าน HTTP · เรียกด้วย curl · Swagger | build · lint/vet · unit · architecture test | SQL · API |
 | **เว็บ full-stack** | Next.js (server actions, route handlers) · Nuxt · SvelteKit | หน้าเดียวที่อ่านและเขียนข้อมูลจริงผ่านโค้ดฝั่ง server | browser pane ผ่าน `launch.json` · e2e (Playwright) | typecheck · lint · unit | FE · SQL ถ้ามี DB · API ถ้าเปิด route ให้ภายนอก |
 | **frontend อย่างเดียว** | Angular · React + Vite · Vue | หน้าเดียวที่เรียก API จริง หรือ mock ตามสัญญาของ API | browser pane ผ่าน `launch.json` | typecheck · lint · unit | FE |
-| **Web API + UI แยกกัน** | Go/.NET + Next.js (แบบ life-claims, Claim) | `/healthz` + หน้าเดียวที่เรียก API ผ่านเส้นทางที่ตั้งใจไว้จริง | browser pane + integration test ของ API | แยก `CHECKS` ต่อโฟลเดอร์ | SQL · API · FE |
+| **Web API + UI แยกกัน** | Go/.NET + Next.js | `/healthz` + หน้าเดียวที่เรียก API ผ่านเส้นทางที่ตั้งใจไว้จริง | browser pane + integration test ของ API | แยก `CHECKS` ต่อโฟลเดอร์ | SQL · API · FE |
 | **mobile** | Flutter · React Native · .NET MAUI · Kotlin · Swift | หน้าจอแรกที่โหลดข้อมูลจริง และ build ติดตั้งบน emulator ได้ | widget/unit test · รันบน emulator แล้วให้ Claude ดูหน้าจอ (computer use) | analyze/lint · unit (build เต็มช้าเกินไปสำหรับด่าน) | APP · API ถ้าเรียก backend |
 | **desktop** | Electron · Tauri · WPF · WinUI · .NET MAUI | หน้าต่างแรกที่ทำงานหลักได้หนึ่งอย่าง และแพ็กเกจติดตั้งได้ | unit test · Playwright สำหรับ Electron · รันแอปแล้วให้ Claude ดูหน้าจอ (computer use) | build · unit | APP |
 | **console / CLI** | Go (cobra) · .NET (System.CommandLine) · Node · Python | คำสั่งเดียวที่รับ input แล้วเขียน output พร้อม `--help` | รันคำสั่งจริงแล้วเทียบผลกับไฟล์คำตอบ (golden/snapshot) | build · unit · golden test | CLI |
@@ -53,9 +53,9 @@
 - ถ้าไม่มีหน้าเว็บ ไม่ต้องมี `launch.json` ให้ Claude ดูผลผ่าน integration test และ curl
 - สัญญา API (OpenAPI หรือ proto) คือสิ่งที่ส่งมอบ ให้เขียนตั้งแต่ ticket แรก และ commit ไฟล์สัญญาพร้อมเทสต์เทียบ (ดูหมายเหตุ Web API + UI ด้านล่าง)
 
-**Web API + UI แยกกัน: สัญญาที่ตรวจได้** (ใช้ได้ผลใน stock-system)
+**Web API + UI แยกกัน: สัญญาที่ตรวจได้**
 - backend สร้าง OpenAPI จากโค้ด แล้ว commit ไฟล์สัญญาไว้ (เช่น `backend/openapi.v1.json`) มีเทสต์เทียบสัญญาที่โค้ดสร้างจริงกับไฟล์นั้น อัปเดตด้วยตัวแปรเช่น `UPDATE_OPENAPI=1`
-- ให้เทสต์นี้สร้างสัญญาได้โดยไม่ต้องต่อ DB หรือ Redis จริง จะได้อยู่ในด่านเร็ว (stock-system วางไว้ในชุด functional ที่ต้องมี DB จึงไม่อยู่ในด่าน)
+- ให้เทสต์นี้สร้างสัญญาได้โดยไม่ต้องต่อ DB หรือ Redis จริง จะได้อยู่ในด่านเร็ว (ถ้าเทสต์นี้ต้องมี DB จะหลุดจากด่าน และแก้ DTO แล้วไม่เห็นแดงจนกว่าจะรันเทสต์ช้า)
 - ui generate type จากไฟล์สัญญา (`openapi-typescript` → `npm run gen:api`) มีเทสต์ตรวจว่า type ตรงกับสัญญา และใส่ไฟล์สัญญาไว้ใน `area` ของเช็ก ui ใน `verify.mjs`
 - ไฟล์สัญญาและ type ที่ generate ไม่ผ่าน formatter (เช่น ใส่ใน `.prettierignore`) และเมื่อ merge ชนกัน ให้สร้างใหม่ แทนการแก้ conflict
 - .NET: ตั้ง `JsonNumberHandling.Strict` ไม่อย่างนั้นสัญญาจะประกาศตัวเลขเป็น `integer|string`
