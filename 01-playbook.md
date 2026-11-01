@@ -200,6 +200,8 @@
 1. `/code-review main` (**P7**) จะรีวิวสองแกน: ตรงมาตรฐานของ repo หรือไม่ และตรง spec หรือไม่
 2. `/security-review` (**P7**) เป็นสกิลที่มากับ Claude Code ใช้รีวิวความปลอดภัยของสิ่งที่เปลี่ยนบน branch ปัจจุบัน
    `/code-review` ไม่ได้ดูเรื่องนี้ จึง **ต้องรันทุกครั้งที่ฟีเจอร์แตะเรื่องเหล่านี้**: auth/สิทธิ์ตามบทบาท · เงินหรือการจ่าย · ข้อมูลส่วนบุคคล · การอัปโหลดไฟล์ · การรับ input ไปประกอบ query หรือคำสั่ง
+   - สกิลนี้เทียบกับ `origin/HEAD` ถ้า repo ยังไม่มี remote สกิลจะล้มทันที ให้ใช้พรอมต์สำรองใน **P7** (agent อ่านอย่างเดียวรีวิว `git diff main...HEAD`) แทน
+   - **ต้องเสร็จก่อน merge** ข้อที่รุนแรงสูงหรือกลางต้องแก้แล้ว หรือคุณตัดสินแล้วว่าไม่แก้ ถ้า merge ไปก่อน ต้องรีวิวย้อนหลังบน `main` และแก้เป็นงานด่วน
 3. รัน **เทสต์ช้า** ที่ด่านไม่ได้รัน เช่น integration และ e2e
 4. **คุณรีวิวเอง** ให้ Claude สรุปจุดเสี่ยงมาก่อน (**P7**) แล้วลองใช้ของจริงสักรอบ (เปิดเว็บ เรียก API รันคำสั่ง หรือเปิดแอป) ถ้ามีหน้าจอ ให้ Claude ถ่ายภาพหน้าที่เปลี่ยนที่ขนาดจอมือถือและ desktop เทียบกับ mockup ก่อน
 5. merge แบบ `--no-ff` เข้า `main` แล้วล้าง worktree ที่ค้าง (`git worktree list` ต้องเหลือแค่ตัวหลัก) แยกก่อนลบ: ตัวที่ `locked` อาจมี agent ทำงานอยู่ · ตัวที่มี merge ค้าง (`MERGE_HEAD`) หรือมีงานที่ยังไม่ commit ต้องถามคุณก่อน · โฟลเดอร์ใน `.claude/worktrees/` ที่ git ไม่รู้จักเป็นของกำพร้า
@@ -256,6 +258,7 @@
 | ด่านตรวจไม่ทำงานเลย | ตรวจว่า session เปิดในโฟลเดอร์โปรเจกต์ และ `.claude/settings.json` ถูก commit แล้ว (worktree จะได้ด่านเฉพาะไฟล์ที่ commit แล้ว) |
 | agent ใน worktree ส่งงานที่ build ไม่ผ่าน | ตรวจว่า `settings.json` มี hook `SubagentStop` และ `verify.mjs` เป็นรุ่นที่มีโหมด `subagent-stop` ดูว่ามี `.git/worktrees/<ชื่อ>/claude-verify.json` หรือไม่ |
 | agent เบื้องหลังเงียบไปนานหลายนาที | มักค้างรอคุณกดอนุญาตคำสั่งในรายการ `ask` ให้ดูคำขอที่ค้างอยู่ แล้วเพิ่มกฎใน CLAUDE.md ให้ agent เลี่ยงคำสั่งนั้น (เช่น เขียนไฟล์ชั่วคราวลงโฟลเดอร์ใหม่แทนการลบ) |
+| Claude บอกว่าแก้ `.claude/settings.json` ไม่ได้ (Self-Modification) | เป็นปกติของ auto mode ไม่ต้องปิดอะไร ให้ Claude เขียนไฟล์ที่รวมแล้วไว้ที่ `.scratch/settings.proposed.json` แล้วคุณรัน `mv .scratch/settings.proposed.json .claude/settings.json` เอง จากนั้นให้ Claude commit และเปิด session ใหม่ให้ hook โหลด |
 | Edit/Write ช้าหลายวินาทีทุกครั้งใน auto mode | ตรวจว่า `settings.json` มี `"allow": ["Edit(/**)"]` (โปรเจกต์ที่ตั้งก่อน 2026-11-01 ยังไม่มี) |
 | merge ชนกันที่ไฟล์ generate | สร้างไฟล์นั้นใหม่จากต้นทาง (เช่น `npm run gen:api`) แทนการแก้ conflict ทีละบรรทัด |
 | `git mv` หรือย้ายโฟลเดอร์ขึ้น Permission denied | dev server หรือ build server ล็อกไฟล์อยู่ ให้หยุด process ของ Claude ก่อน |
@@ -277,5 +280,5 @@
 - [ ] 4 · session ใหม่ · `spec.md` ของฟีเจอร์แรก
 - [ ] 5 · tickets แนวตั้ง · blocked by น้อย · งานร่วมอยู่ใบเดียว · ไม่มีใบเอกสารตอนท้าย · ใบตรวจรวมตรวจอย่างเดียว
 - [ ] 6 · session ใหม่ · implement (ทีละใบ หรือ `/implement-spec`) · ticket เสร็จแล้ว `Status: done`
-- [ ] 7 · `/code-review` · `/security-review` (เมื่อแตะ auth/เงิน/ข้อมูลส่วนบุคคล/ไฟล์/input) · เทสต์ช้าผ่าน · คนรีวิว · merge `--no-ff` · ล้าง worktree
+- [ ] 7 · `/code-review` · `/security-review` หรือพรอมต์สำรองเมื่อไม่มี remote (เมื่อแตะ auth/เงิน/ข้อมูลส่วนบุคคล/ไฟล์/input · ต้องเสร็จก่อน merge) · เทสต์ช้าผ่าน · คนรีวิว · merge `--no-ff` · ล้าง worktree
 - [ ] 8 · บั๊กใช้ `/diagnosing-bugs` · ความผิดซ้ำแปลงเป็นเทสต์หรือกฎ
