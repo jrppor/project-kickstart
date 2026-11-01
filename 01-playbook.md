@@ -44,7 +44,8 @@
 
 1. สร้างโฟลเดอร์ใน `C:\Coding\<ชื่อ>` แล้ว `git init`
 2. **เปิด session ใหม่ในแอป Claude โดยเลือกโฟลเดอร์นี้เป็นโฟลเดอร์งาน** ถ้าเปิดจากโฟลเดอร์อื่น hooks และกฎของโปรเจกต์จะไม่ถูกโหลด
-3. ใช้ **P1** ให้ Claude คัดลอก `templates/` เข้า repo (CLAUDE.md, `.claude/settings.json`, `.claude/hooks/verify.mjs`, `.claude/launch.json`, บรรทัด `.gitignore`)
+3. ใช้ **P1** ให้ Claude คัดลอก `templates/` เข้า repo (CLAUDE.md, `CODING_STANDARDS.md`, `.claude/settings.json`, `.claude/hooks/verify.mjs`, `.claude/launch.json`, บรรทัด `.gitignore`)
+   `CODING_STANDARDS.md` คือไฟล์ที่ `/code-review` อ่านเป็นมาตรฐานของ repo มีส่วนกลางกับภาคผนวกโดเมน (เงิน ธนาคาร หุ้น audit) และภาคผนวกภาษา ให้ตัดภาคผนวกที่ไม่ใช้ทิ้งหลังขั้นที่ 2
 4. พิมพ์ `/setup-matt-pocock-skills` เพื่อตั้งค่า
    - issue tracker: ถ้าทำคนเดียวไม่มี remote ใช้ **local markdown** (`.scratch/`) ถ้ามี GitHub repo ใช้ **GitHub Issues**
    - domain docs: ใช้ **single-context** (`GLOSSARY.md` + `docs/adr/`)
@@ -62,7 +63,7 @@
 - ADR ที่ควรมีก่อนเขียนโค้ด: ฐานข้อมูล · โครงสถาปัตยกรรม (layer/โฟลเดอร์) · วิธีจัดการ error · auth · วิธีส่งงานเบื้องหลัง (เช่น outbox หรือ queue)
 - คำศัพท์ในโดเมนให้ตั้งชื่อเป็นภาษาอังกฤษในโค้ด และใส่คำไทยที่แสดงบน UI กำกับไว้ใน glossary
 
-**เสร็จเมื่อ:** มี glossary ที่ครอบคลุมคำในเส้นทางหลัก และมี ADR 3–6 ฉบับ
+**เสร็จเมื่อ:** มี glossary ที่ครอบคลุมคำในเส้นทางหลัก มี ADR 3–6 ฉบับ และ `CODING_STANDARDS.md` เหลือเฉพาะภาคผนวกที่ใช้ และไม่ขัดกับ ADR
 **กับดัก:** ตอบคำถามแบบ "แล้วแต่ Claude" ทุกข้อ ถ้าตัดสินไม่ได้ ให้ขอตัวเลือกพร้อมข้อดีข้อเสียมาเทียบ
 
 ---

@@ -36,8 +36,10 @@ brief ต้องตอบครบ 6 ข้อ: ปัญหา · ผู้�
 ```text
 ตั้ง repo นี้ด้วยชุดเริ่มต้นที่ C:\Coding\project-kickstart\templates
 
-1. คัดลอก templates/CLAUDE.md, templates/.claude/ (settings.json, hooks/verify.mjs, launch.json) เข้า repo นี้
+1. คัดลอก templates/CLAUDE.md, templates/CODING_STANDARDS.md, templates/.claude/ (settings.json, hooks/verify.mjs, launch.json) เข้า repo นี้
 2. ต่อท้าย .gitignore ด้วยเนื้อหาของ templates/gitignore-claude.txt (ถ้ายังไม่มี .gitignore ให้สร้าง)
+   ใน CODING_STANDARDS.md ให้ลบภาคผนวกโดเมนและภาษาที่โปรเจกต์นี้ไม่ใช้ (ดูจาก docs/brief.md) ถ้ายังไม่รู้ stack ให้คงไว้ก่อน
+   แล้วค่อยตัดหลังขั้น P2
 3. ใน CLAUDE.md ใส่ชื่อโปรเจกต์และประโยคแรกจาก docs/brief.md ส่วนอื่นที่ยังเป็น <...> ให้คงไว้ก่อน
    เพราะยังไม่มีคำสั่งที่รันได้จริง
 4. ยังไม่ต้องเติม CHECKS ใน verify.mjs และยังไม่ต้องเติม launch.json
@@ -62,6 +64,9 @@ brief ต้องตอบครบ 6 ข้อ: ปัญหา · ผู้�
 
 ADR ที่ต้องได้ก่อนจบ: ฐานข้อมูล · stack ของ api และ ui · โครงโฟลเดอร์/layer · วิธีจัดการ error ที่คาดได้ ·
 auth · งานเบื้องหลัง (อีเมล, งานตามเวลา) ถ้ามี
+
+เมื่อได้ ADR แล้ว ให้ปรับ CODING_STANDARDS.md: ลบภาคผนวกโดเมนและภาษาที่ไม่ใช้ และแก้ข้อที่ขัดกับ ADR
+(เช่น ADR เลือก Result แทน exception ให้แก้ ERR-3 ให้ตรง)
 
 ตั้งชื่อคำในโดเมนเป็นอังกฤษสำหรับโค้ด และใส่คำไทยที่จะแสดงบน UI ใน glossary
 ข้อไหนผมไม่แน่ใจ ให้เสนอ 2–3 ตัวเลือกพร้อมข้อดีข้อเสียแล้วบอกว่าคุณแนะนำตัวไหน

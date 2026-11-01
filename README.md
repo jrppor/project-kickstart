@@ -32,6 +32,7 @@
 | [01-playbook.md](01-playbook.md) | แผนละเอียด: เป้าหมาย สิ่งที่ทำ เกณฑ์ "เสร็จ" และกับดักของแต่ละขั้น พร้อมเช็กลิสต์หน้าเดียว |
 | [02-prompts.md](02-prompts.md) | พรอมต์ P0–P9 สำหรับคัดลอกไปใช้ |
 | [templates/CLAUDE.md](templates/CLAUDE.md) | โครง CLAUDE.md: คำสั่ง · ด่านตรวจ · ข้อควรรู้ |
+| [templates/CODING_STANDARDS.md](templates/CODING_STANDARDS.md) | มาตรฐานโค้ดที่ `/code-review` ใช้ตรวจ: ส่วนกลางทุกโปรเจกต์ · ภาคผนวกโดเมน (เงิน ธนาคาร หุ้น audit) · ภาคผนวกภาษา (Go, C#, Java, TS/React/Next.js, Angular) |
 | [templates/.claude/settings.json](templates/.claude/settings.json) | กฎห้าม (force push, `--no-verify`) · กฎที่ต้องถามก่อน (reset --hard, clean, down -v) · ต่อ hooks |
 | [templates/.claude/hooks/verify.mjs](templates/.claude/hooks/verify.mjs) | ด่านตรวจก่อนจบเทิร์นที่รันเฉพาะส่วนที่เปลี่ยน มี formatter หลังแก้ไฟล์ และตัวอย่าง `CHECKS` ของ Go, Node, .NET, Python |
 | [templates/.claude/launch.json](templates/.claude/launch.json) | ตัวอย่างให้ Claude เปิด dev server ใน browser pane เอง |
