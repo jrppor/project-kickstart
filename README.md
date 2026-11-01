@@ -6,9 +6,22 @@
 ## เริ่มตรงไหน
 
 1. อ่าน [01-playbook.md](01-playbook.md) หนึ่งรอบ เพื่อดูภาพรวมว่ามีกี่ขั้นและแต่ละขั้นต้องได้อะไร
-2. ดู [03-project-shapes.md](03-project-shapes.md) ว่าโปรเจกต์ของคุณเป็นรูปแบบไหน และโครงเปล่ากับวิธีตรวจต่างกันอย่างไร
-3. เปิด [02-prompts.md](02-prompts.md) ไว้ข้างๆ ระหว่างทำ แล้วคัดลอกพรอมต์ของแต่ละขั้นไปใช้
-4. ถึงขั้นที่ 1 ให้ Claude คัดลอก `templates/` เข้า repo ใหม่ (พรอมต์ P1)
+2. สร้างโฟลเดอร์โปรเจกต์ใหม่ เปิด session ของแอป Claude ในโฟลเดอร์นั้น แล้วพิมพ์ `/kickstart`
+3. ทำตามกล่อง "▶ ต่อไป" ท้ายทุกคำตอบ ขั้นที่ Claude ทำเองได้ สกิลจะทำให้เลย ขั้นที่ต้องใช้สกิลที่คุณต้องพิมพ์เอง
+   (เช่น `/grill-with-docs`, `/to-spec`, `/to-tickets`, `/implement`) กล่องจะบอกบรรทัดที่ต้องพิมพ์
+4. อยากรู้ว่าทำถึงไหน พิมพ์ `/kickstart status` · เริ่มฟีเจอร์ใหม่ พิมพ์ `/kickstart feature <ชื่อ>`
+
+ไม่ต้องคัดลอกพรอมต์จาก [02-prompts.md](02-prompts.md) เอง สกิลอ่านไฟล์นั้นให้ (ยังเปิดดูหรือคัดลอกเองได้ถ้าต้องการ)
+
+### ติดตั้งสกิล `/kickstart` (ครั้งเดียวต่อเครื่อง)
+
+สกิลอยู่ใน [skill/](skill/) ของ repo นี้ ลิงก์เข้าโฟลเดอร์สกิลด้วย junction เพื่อให้แก้ที่ repo นี้แล้วมีผลทันที
+
+```bash
+cmd //c mklink /J "%USERPROFILE%\.claude\skills\kickstart" "C:\Coding\project-kickstart\skill"
+```
+
+สกิลอ่านไฟล์จาก `C:\Coding\project-kickstart` ถ้า clone ไว้ที่อื่น ให้แก้ path ใน `skill/SKILL.md`
 
 ## ลำดับขั้นโดยย่อ
 
@@ -33,7 +46,8 @@
 | ไฟล์ | คืออะไร |
 |---|---|
 | [01-playbook.md](01-playbook.md) | แผนละเอียด: เป้าหมาย สิ่งที่ทำ เกณฑ์ "เสร็จ" และกับดักของแต่ละขั้น พร้อมเช็กลิสต์หน้าเดียว |
-| [02-prompts.md](02-prompts.md) | พรอมต์ P0–P9 สำหรับคัดลอกไปใช้ |
+| [skill/SKILL.md](skill/SKILL.md) | สกิล `/kickstart`: หาขั้นปัจจุบันจาก `docs/progress.md` และไฟล์ใน repo · ทำขั้นที่ Claude ทำเองได้ · บอกคำสั่งที่คุณต้องพิมพ์เอง |
+| [02-prompts.md](02-prompts.md) | พรอมต์ P0–P9 ที่ `/kickstart` อ่านไปทำ (คัดลอกใช้เองได้) |
 | [03-project-shapes.md](03-project-shapes.md) | รูปแบบโปรเจกต์ทุกแบบ: โครงเปล่าที่รันได้ · วิธีให้ Claude ดูผลเอง · ด่านตรวจ · หมวดมาตรฐานที่ต้องเก็บ |
 | [templates/CLAUDE.md](templates/CLAUDE.md) | โครง CLAUDE.md: รูปแบบและส่วนประกอบ · คำสั่ง · วิธีดูผลงานจริง · ด่านตรวจ · ข้อควรรู้ |
 | [templates/CODING_STANDARDS.md](templates/CODING_STANDARDS.md) | มาตรฐานโค้ดที่ `/code-review` ใช้ตรวจ: ส่วนกลางทุกโปรเจกต์ · หมวดตามส่วนประกอบ (SQL, API, FE, UI, APP, CLI, WORKER, LIB) · ภาคผนวกโดเมน (เงิน ธนาคาร หุ้น audit) · ภาคผนวกภาษา (Go, C#, Java, TS/React/Next.js, Angular) |

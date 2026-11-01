@@ -45,4 +45,11 @@
 
 - ห้าม commit `.env` หรือไฟล์ที่มี secret
 
+## ลำดับงาน (`docs/progress.md`)
+
+- โปรเจกต์นี้เดินตามขั้นของ project-kickstart สถานะอยู่ใน `docs/progress.md` ใช้ `/kickstart` เพื่อทำขั้นถัดไป
+- จบงานของขั้นใด (รวมงานจากสกิลที่ผู้ใช้พิมพ์เอง เช่น `/to-spec`, `/to-tickets`, `/implement`) ให้อัปเดต `docs/progress.md`
+  แล้วปิดคำตอบด้วยคำสั่งถัดไปที่ผู้ใช้ต้องพิมพ์ หรือบอกให้พิมพ์ `/kickstart`
+- ticket ใน `.scratch/` ที่ทำเสร็จและเทสต์ผ่านแล้ว ให้แก้บรรทัด Status เป็น `done` ใน commit เดียวกับงาน
+
 <!-- ส่วน "## Agent skills" จะถูกเพิ่มต่อท้ายโดย /setup-matt-pocock-skills -->
