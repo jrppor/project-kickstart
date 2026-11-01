@@ -6,8 +6,10 @@
 // The last green run is kept per worktree in <git-dir>/claude-verify.json, so an unchanged area is not re-checked.
 // {gitDir} in a command is this worktree's git dir (e.g. a build output that must not lock the dev server's bin/).
 //
-// วิธีใช้: ใส่ CHECKS ของโปรเจกต์ (ตัวอย่างแต่ละ stack อยู่ใน comment ข้างล่าง) ให้แต่ละชุดจบใน ~30 วินาที
-// เทสต์ที่ช้า (integration ที่ต้องใช้ DB จริง, e2e) ไม่ต้องใส่ ให้เขียนไว้ใน CLAUDE.md ว่ารันก่อน commit
+// วิธีใช้: ใส่ CHECKS หนึ่งชุดต่อหนึ่งส่วนประกอบ (โฟลเดอร์) ให้แต่ละชุดจบใน ~30 วินาที
+// area คือ regex ของ path ที่ถ้าเปลี่ยนแล้วต้องตรวจชุดนี้ cwd คือโฟลเดอร์ที่รันคำสั่ง (โปรเจกต์ส่วนเดียวใช้ ".")
+// ตัวอย่างข้างล่างเป็นแค่ stack ตัวอย่าง ชื่อโฟลเดอร์ (api/, ui/, app/) ให้เปลี่ยนตามโปรเจกต์จริง
+// เทสต์ที่ช้า (integration ที่ต้องใช้ DB จริง, e2e, build แอปเต็ม) ไม่ต้องใส่ ให้เขียนไว้ใน CLAUDE.md ว่ารันก่อน commit
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -28,6 +30,12 @@ const CHECKS = [
   //
   // Python
   // { name: "app", area: /^(src|tests)\/.*\.py$|^pyproject\.toml$/, cwd: ".", cmds: ["ruff check .", "pytest -q -x"] },
+  //
+  // โปรเจกต์ส่วนเดียว เช่น CLI หรือ library ภาษา Go (golden test อยู่ใน go test)
+  // { name: "cli", area: /\.(go|mod|sum)$|^testdata\//, cwd: ".", cmds: ["go build ./...", "go vet ./...", "go test ./... -short"] },
+  //
+  // Flutter (mobile/desktop) ไม่ต้อง build แอปเต็มในด่าน
+  // { name: "app", area: /^(lib|test)\/.*\.dart$|^pubspec\.yaml$/, cwd: ".", cmds: ["flutter analyze", "flutter test"] },
 ];
 
 const FORMATTERS = [

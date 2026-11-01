@@ -1,17 +1,19 @@
 # project-kickstart
 
 ชุดเริ่มโปรเจกต์ใหม่สำหรับทำงานคู่กับ Claude Code มีแผนลำดับขั้น พรอมต์พร้อมใช้ และไฟล์แม่แบบที่คัดลอกเข้า repo ใหม่ได้ทันที
+ใช้ได้กับทุกรูปแบบ: Web API · เว็บ full-stack · frontend · mobile · desktop · console/CLI · background service · library หรือหลายส่วนรวมกัน
 
 ## เริ่มตรงไหน
 
 1. อ่าน [01-playbook.md](01-playbook.md) หนึ่งรอบ เพื่อดูภาพรวมว่ามีกี่ขั้นและแต่ละขั้นต้องได้อะไร
-2. เปิด [02-prompts.md](02-prompts.md) ไว้ข้างๆ ระหว่างทำ แล้วคัดลอกพรอมต์ของแต่ละขั้นไปใช้
-3. ถึงขั้นที่ 1 ให้ Claude คัดลอก `templates/` เข้า repo ใหม่ (พรอมต์ P1)
+2. ดู [03-project-shapes.md](03-project-shapes.md) ว่าโปรเจกต์ของคุณเป็นรูปแบบไหน และโครงเปล่ากับวิธีตรวจต่างกันอย่างไร
+3. เปิด [02-prompts.md](02-prompts.md) ไว้ข้างๆ ระหว่างทำ แล้วคัดลอกพรอมต์ของแต่ละขั้นไปใช้
+4. ถึงขั้นที่ 1 ให้ Claude คัดลอก `templates/` เข้า repo ใหม่ (พรอมต์ P1)
 
 ## ลำดับขั้นโดยย่อ
 
 ```text
-0 โจทย์หนึ่งหน้า        docs/brief.md                          P0
+0 โจทย์หนึ่งหน้า        docs/brief.md + รูปแบบโปรเจกต์            P0
 1 ตั้ง repo             templates + /setup-matt-pocock-skills  P1
 2 คำศัพท์ + ตัดสินใจ     /grill-with-docs → GLOSSARY.md + ADR    P2
 3 โครงเปล่าที่รันได้      walking skeleton + ด่านตรวจที่พิสูจน์แล้ว  P3
@@ -31,11 +33,12 @@
 |---|---|
 | [01-playbook.md](01-playbook.md) | แผนละเอียด: เป้าหมาย สิ่งที่ทำ เกณฑ์ "เสร็จ" และกับดักของแต่ละขั้น พร้อมเช็กลิสต์หน้าเดียว |
 | [02-prompts.md](02-prompts.md) | พรอมต์ P0–P9 สำหรับคัดลอกไปใช้ |
-| [templates/CLAUDE.md](templates/CLAUDE.md) | โครง CLAUDE.md: คำสั่ง · ด่านตรวจ · ข้อควรรู้ |
-| [templates/CODING_STANDARDS.md](templates/CODING_STANDARDS.md) | มาตรฐานโค้ดที่ `/code-review` ใช้ตรวจ: ส่วนกลางทุกโปรเจกต์ · ภาคผนวกโดเมน (เงิน ธนาคาร หุ้น audit) · ภาคผนวกภาษา (Go, C#, Java, TS/React/Next.js, Angular) |
+| [03-project-shapes.md](03-project-shapes.md) | รูปแบบโปรเจกต์ทุกแบบ: โครงเปล่าที่รันได้ · วิธีให้ Claude ดูผลเอง · ด่านตรวจ · หมวดมาตรฐานที่ต้องเก็บ |
+| [templates/CLAUDE.md](templates/CLAUDE.md) | โครง CLAUDE.md: รูปแบบและส่วนประกอบ · คำสั่ง · วิธีดูผลงานจริง · ด่านตรวจ · ข้อควรรู้ |
+| [templates/CODING_STANDARDS.md](templates/CODING_STANDARDS.md) | มาตรฐานโค้ดที่ `/code-review` ใช้ตรวจ: ส่วนกลางทุกโปรเจกต์ · หมวดตามส่วนประกอบ (SQL, API, FE, APP, CLI, WORKER, LIB) · ภาคผนวกโดเมน (เงิน ธนาคาร หุ้น audit) · ภาคผนวกภาษา (Go, C#, Java, TS/React/Next.js, Angular) |
 | [templates/.claude/settings.json](templates/.claude/settings.json) | กฎห้าม (force push, `--no-verify`) · กฎที่ต้องถามก่อน (reset --hard, clean, down -v) · ต่อ hooks |
-| [templates/.claude/hooks/verify.mjs](templates/.claude/hooks/verify.mjs) | ด่านตรวจก่อนจบเทิร์นที่รันเฉพาะส่วนที่เปลี่ยน มี formatter หลังแก้ไฟล์ และตัวอย่าง `CHECKS` ของ Go, Node, .NET, Python |
-| [templates/.claude/launch.json](templates/.claude/launch.json) | ตัวอย่างให้ Claude เปิด dev server ใน browser pane เอง |
+| [templates/.claude/hooks/verify.mjs](templates/.claude/hooks/verify.mjs) | ด่านตรวจก่อนจบเทิร์นที่รันเฉพาะส่วนที่เปลี่ยน มี formatter หลังแก้ไฟล์ และตัวอย่าง `CHECKS` ของ Go, Node, .NET, Python, Flutter และโปรเจกต์ส่วนเดียว |
+| [templates/.claude/launch.json](templates/.claude/launch.json) | เฉพาะโปรเจกต์ที่มีหน้าเว็บ: ให้ Claude เปิด dev server ใน browser pane เอง |
 | [templates/gitignore-claude.txt](templates/gitignore-claude.txt) | บรรทัดสำหรับ `.gitignore` (ignore เฉพาะ worktree กับ settings ส่วนตัว) |
 | [CHANGELOG.md](CHANGELOG.md) | ประวัติการเปลี่ยนแปลงของชุดนี้ พร้อมเหตุผลและโปรเจกต์ที่ลองแล้ว |
 | [ideas.md](ideas.md) | ใบเสนอของใหม่ พร้อมข้อดีข้อเสียและช่องอนุมัติของเจ้าของ |
