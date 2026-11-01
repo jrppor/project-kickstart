@@ -16,6 +16,7 @@
 0 โจทย์หนึ่งหน้า        docs/brief.md + รูปแบบโปรเจกต์            P0
 1 ตั้ง repo             templates + /setup-matt-pocock-skills  P1
 2 คำศัพท์ + ตัดสินใจ     /grill-with-docs → GLOSSARY.md + ADR    P2
+2.5 ออกแบบหน้าจอ        ADR ด้านการออกแบบ + แผนผังหน้าจอ + prototype (เฉพาะที่มีหน้าจอ)   P2.5
 3 โครงเปล่าที่รันได้      walking skeleton + ด่านตรวจที่พิสูจน์แล้ว  P3
 ── วนต่อฟีเจอร์ ─────────────────────────────────────────────────────
 4 สเปก                 คุย → /to-spec                          P4
@@ -35,7 +36,7 @@
 | [02-prompts.md](02-prompts.md) | พรอมต์ P0–P9 สำหรับคัดลอกไปใช้ |
 | [03-project-shapes.md](03-project-shapes.md) | รูปแบบโปรเจกต์ทุกแบบ: โครงเปล่าที่รันได้ · วิธีให้ Claude ดูผลเอง · ด่านตรวจ · หมวดมาตรฐานที่ต้องเก็บ |
 | [templates/CLAUDE.md](templates/CLAUDE.md) | โครง CLAUDE.md: รูปแบบและส่วนประกอบ · คำสั่ง · วิธีดูผลงานจริง · ด่านตรวจ · ข้อควรรู้ |
-| [templates/CODING_STANDARDS.md](templates/CODING_STANDARDS.md) | มาตรฐานโค้ดที่ `/code-review` ใช้ตรวจ: ส่วนกลางทุกโปรเจกต์ · หมวดตามส่วนประกอบ (SQL, API, FE, APP, CLI, WORKER, LIB) · ภาคผนวกโดเมน (เงิน ธนาคาร หุ้น audit) · ภาคผนวกภาษา (Go, C#, Java, TS/React/Next.js, Angular) |
+| [templates/CODING_STANDARDS.md](templates/CODING_STANDARDS.md) | มาตรฐานโค้ดที่ `/code-review` ใช้ตรวจ: ส่วนกลางทุกโปรเจกต์ · หมวดตามส่วนประกอบ (SQL, API, FE, UI, APP, CLI, WORKER, LIB) · ภาคผนวกโดเมน (เงิน ธนาคาร หุ้น audit) · ภาคผนวกภาษา (Go, C#, Java, TS/React/Next.js, Angular) |
 | [templates/.claude/settings.json](templates/.claude/settings.json) | กฎห้าม (force push, `--no-verify`) · กฎที่ต้องถามก่อน (reset --hard, clean, down -v) · ต่อ hooks |
 | [templates/.claude/hooks/verify.mjs](templates/.claude/hooks/verify.mjs) | ด่านตรวจก่อนจบเทิร์นที่รันเฉพาะส่วนที่เปลี่ยน มี formatter หลังแก้ไฟล์ และตัวอย่าง `CHECKS` ของ Go, Node, .NET, Python, Flutter และโปรเจกต์ส่วนเดียว |
 | [templates/.claude/launch.json](templates/.claude/launch.json) | เฉพาะโปรเจกต์ที่มีหน้าเว็บ: ให้ Claude เปิด dev server ใน browser pane เอง |

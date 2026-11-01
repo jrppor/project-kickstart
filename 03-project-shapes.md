@@ -34,7 +34,16 @@
 | **background service / worker** | queue consumer · scheduled job · Windows service · .NET Worker | รับงานหนึ่งชิ้นแล้วเกิดผลที่ตรวจได้ และหยุดทำงานอย่างเรียบร้อย | integration test ใส่งานเข้าคิว (container) แล้วตรวจผล · อ่าน log | build · unit | WORKER · SQL ถ้ามี DB |
 | **library / SDK** | NuGet · npm · Go module · Maven | public API หนึ่งตัว + ตัวอย่างการใช้ที่รันได้ + build เป็นแพ็กเกจได้ | รันเทสต์และตัวอย่าง | build · unit · ตรวจว่า public API ไม่เปลี่ยนโดยไม่ตั้งใจ | LIB |
 
-**หมวดตามส่วนประกอบ** หมายถึงหมวดใน `CODING_STANDARDS.md` ที่ใช้เฉพาะบางรูปแบบ (SQL, API, FE, APP, CLI, WORKER, LIB) หมวดส่วนกลางใช้กับทุกรูปแบบเสมอ
+**หมวดตามส่วนประกอบ** หมายถึงหมวดใน `CODING_STANDARDS.md` ที่ใช้เฉพาะบางรูปแบบ (SQL, API, FE, UI, APP, CLI, WORKER, LIB) หมวดส่วนกลางใช้กับทุกรูปแบบเสมอ
+**ทุกรูปแบบที่มีหน้าจอ** (เว็บ full-stack, frontend, Web API + UI, mobile, desktop) ต้องทำ **ขั้นที่ 2.5 ออกแบบหน้าจอ** และเก็บหมวด **UI** ไว้ด้วย ส่วน Web API, CLI, worker และ library ข้ามขั้นนี้ได้
+
+## ขั้นออกแบบ (2.5) ในแต่ละรูปแบบที่มีหน้าจอ
+
+| รูปแบบ | design system ที่มักใช้ | prototype ทำด้วยอะไร | ข้อควรระวัง |
+|---|---|---|---|
+| เว็บ (full-stack, frontend, Web API + UI) | MUI · shadcn/ui · Angular Material หรือ token ของเราเอง | HTML ที่กดได้จาก `/frontend-design` | ระบบหลังบ้านเน้นตารางและฟอร์มที่อ่านง่าย แสดงข้อมูลแน่นแต่ไม่รก |
+| mobile | Material 3 (Android) · Human Interface Guidelines (iOS) · theme ของ Flutter/React Native | HTML ขนาดจอมือถือ หรือหน้าจอจริงบน emulator | เป้าแตะต้องใหญ่พอ · ข้อความไทยยาวกว่าอังกฤษ · ขนาดตัวอักษรตามที่ระบบตั้ง |
+| desktop | Fluent (Windows) · HIG (macOS) · theme ของ Electron/Tauri | HTML ขนาดหน้าต่าง desktop หรือหน้าต่างจริง | keyboard shortcut · ย่อขยายหน้าต่างได้ · หลายจอและ DPI สูง |
 
 ---
 
