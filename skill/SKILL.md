@@ -80,6 +80,9 @@ argument-hint: "[status | feature <ชื่อ> | step <เลขขั้น> 
    - `.claude/settings.json` ไม่มี hook `SubagentStop` หรือ `verify.mjs` ไม่มีโหมด `subagent-stop` → agent ใน worktree ไม่ผ่านด่าน
      ให้คัดลอกส่วนท้ายของ `KIT/templates/.claude/hooks/verify.mjs` (ตั้งแต่ `const OUTPUT_TAIL_LINES` ลงไป) และ hook จากแม่แบบ settings โดยคง `CHECKS`/`FORMATTERS` ของโปรเจกต์ไว้
    - ไม่มี `.worktreeinclude` แต่มี `.env` ที่ git ignore → สร้างจากแม่แบบ
+   - `.claude/settings.json` ไม่มี `"allow": ["Edit(/**)"]` → เพิ่ม (Edit/Write ใน auto mode จะไม่ต้องผ่านตัวตรวจทุกครั้ง)
+   - หัวข้อ "เตรียม worktree" ไม่มีข้อห้ามใช้คำสั่งในรายการ `ask` หรือข้อห้ามสร้างข้อมูลทดสอบใน DB ของ dev → เพิ่มจากแม่แบบ
+   - มีหน้าจอแต่ CLAUDE.md ไม่มีบรรทัด "การตรวจบนเบราว์เซอร์" → ถามผู้ใช้ว่าจะมี e2e ใน repo หรือ commit สคริปต์ไว้ใน `.scratch/` แล้วเติม
 4. **เทียบ progress กับ repo จริง** ถ้าไม่ตรงกัน (เช่น progress บอกขั้น 5 แต่มี issues ครบแล้ว) ให้เชื่อ repo แล้วแก้ progress
 5. **ทำขั้นนั้น** ตามตาราง "ใครทำ" ด้านล่าง จบขั้นแล้ว commit เองโดยไม่ต้องถาม (ห้าม push)
 6. **อัปเดต `docs/progress.md`** ทั้งเครื่องหมายขั้นและหัวข้อ "ขั้นถัดไป" แล้ว commit ไปพร้อมงานของขั้น
