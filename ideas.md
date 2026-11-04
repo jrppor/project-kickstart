@@ -77,6 +77,8 @@
 **การอนุมัติ:**
 - 2026-11-01 · อนุมัติให้ลอง · เจ้าของ: "ตั้งงานอัตโนมัติทบทวนของใหม่ทุก 7 วัน" ภายหลังเปลี่ยนเวลา: "ไม่เอา 9 โมง 3 ทุ่มละกัน"
 
+หมายเหตุ 2026-11-04: รอบแรก (2026-11-02) รันสำเร็จ ได้ I-004 · 2026-11-03 เจ้าของสั่ง "ปรับใหม่ ให้ push เสมอด้วย" งานจึง push ทุกรอบหลังตรวจ secret และไม่ push ถ้ามี commit อื่นของเจ้าของค้าง (ข้อความ "ไม่ push" ในช่อง "คืออะไร" ไม่ใช้แล้ว)
+
 ---
 
 ### I-002 · agent `test-runner` สำหรับเทสต์ที่ช้า
@@ -135,7 +137,7 @@
 
 ### I-004 · `worktree.baseRef: "head"` ให้ worktree ของ agent แตกจาก integration branch
 
-**สถานะ:** 🟡 รออนุมัติ · **เสนอเมื่อ:** 2026-11-02 · **ที่มา:** [เอกสาร Worktrees หัวข้อ "Choose the base branch"](https://code.claude.com/docs/en/worktrees.md#choose-the-base-branch) · [changelog](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md)
+**สถานะ:** 🧪 กำลังลอง · **เสนอเมื่อ:** 2026-11-02 · **ที่มา:** [เอกสาร Worktrees หัวข้อ "Choose the base branch"](https://code.claude.com/docs/en/worktrees.md#choose-the-base-branch) · [changelog](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md)
 
 **คืออะไร:** ค่าตั้งใน `.claude/settings.json`: `{"worktree": {"baseRef": "head"}}` ปกติ (`"fresh"`) worktree ใหม่ รวมถึง worktree ของ agent ย่อย จะแตกจาก default branch บน remote (`origin/main`) ไม่ใช่ branch ที่ session หลักยืนอยู่ ถ้าตั้งเป็น `"head"` จะแตกจาก `HEAD` ในเครื่องของ session ที่สั่ง
 **แก้ปัญหาอะไรของเรา:** `/implement-spec` ให้ agent ทำแต่ละ ticket ใน worktree แยก และสกิลสั่งให้ agent "ตรวจว่า worktree อิงจาก integration branch แล้ว reset ถ้าไม่ใช่" ส่วนชุดนี้ห้าม agent ใช้ `git reset --hard` (อยู่ในรายการ `ask` ทำให้ค้างรอคนกด) ใน CHANGELOG 2026-11-01 เลยให้ agent รายงานแทน ถ้า worktree แตกจาก `origin/main` ที่ไม่มี ticket ก่อนหน้า agent ก็จะรายงาน "ผิดฐาน" ทุกใบที่ตามหลัง ticket แรก (repo ที่ไม่มี remote ไม่เจอปัญหานี้ เพราะเอกสารว่าจะ fallback เป็น `HEAD` ในเครื่องอยู่แล้ว)
@@ -155,7 +157,14 @@
 **คำแนะนำของ Claude:** ควรลอง เป็นข้อเสนอที่ตรงกับปัญหาที่บันทึกไว้แล้ว ต้นทุนต่ำ และย้อนกลับได้ด้วยการลบบรรทัดเดียว แต่ต้องทดสอบก่อนว่า project settings ใช้ค่านี้ได้
 
 **การอนุมัติ:**
-- (ว่าง จนกว่าเจ้าของจะตัดสิน)
+- 2026-11-04 · อนุมัติให้ลอง · เจ้าของ: "ทำ" (ตอบคำถาม "อนุมัติ I-004 ให้ลองไหม")
+
+หมายเหตุ 2026-11-04 (ทดสอบใน sandbox ด้วย Claude Code 2.1.317): repo ที่มี remote แบบ bare · `main` = A push แล้ว · branch `feat` = A+B ยังไม่ push · session ยืนบน `feat` · ใส่ค่าใน `.claude/settings.json` ของโปรเจกต์ (ไม่ใช่ของเครื่อง)
+- `claude -p --worktree` ไม่ตั้งค่า → worktree อยู่ที่ A (`origin/main`) · ตั้ง `"head"` → อยู่ที่ B
+- agent ย่อยที่ใช้ `isolation: "worktree"` (ตั้ง `"head"`) → worktree อยู่ที่ B และมีไฟล์ของ B
+- สรุป: ค่าใน project settings ใช้ได้ (ตรงกับเอกสาร settings ที่บอกว่าใส่ได้ "Any file") ข้อเสียข้อที่ 3 ในตารางตกไป
+- ยังไม่ได้ลอง: ฟีเจอร์จริงด้วย `/implement-spec` ใน repo ที่มี remote (ตามวิธีลอง) · ผลกับ session แยกใน desktop
+- แม่แบบยังไม่แก้ จนกว่าเจ้าของอนุมัติให้รับเข้าแผน · ระหว่างลองให้ใส่บรรทัดนี้เองในโปรเจกต์ที่จะลอง
 
 ## ไม่รับแล้ว
 
