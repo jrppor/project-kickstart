@@ -219,7 +219,7 @@
 
 ### I-006 · สูตรยกระบบและตรวจงานเป็นสกิลของโปรเจกต์ (`/run-skill-generator` · `/verify`) แทนสคริปต์ตรวจต่อใบงาน
 
-**สถานะ:** 🟡 รออนุมัติ · **เสนอเมื่อ:** 2026-11-05 · **ที่มา:** [เอกสาร Skills (สกิลที่มากับ Claude Code)](https://code.claude.com/docs/en/skills) · [บล็อก Building verification loops in Claude Code with skills (2026-07-22)](https://claude.com/blog/building-verification-loops-in-claude-code-with-skills) · [ทอล์ก "Stop babysitting your agents" (Sid Bidasaria, Code w/ Claude 2026)](https://claude.com/code-with-claude/session/ldn-stop-babysitting-your-agents) · ที่มาของคำถาม: เจ้าของส่งโพสต์สรุปทอล์กนี้มาเมื่อ 2026-11-05
+**สถานะ:** 🧪 กำลังลอง · **เสนอเมื่อ:** 2026-11-05 · **ที่มา:** [เอกสาร Skills (สกิลที่มากับ Claude Code)](https://code.claude.com/docs/en/skills) · [บล็อก Building verification loops in Claude Code with skills (2026-07-22)](https://claude.com/blog/building-verification-loops-in-claude-code-with-skills) · [ทอล์ก "Stop babysitting your agents" (Sid Bidasaria, Code w/ Claude 2026)](https://claude.com/code-with-claude/session/ldn-stop-babysitting-your-agents) · ที่มาของคำถาม: เจ้าของส่งโพสต์สรุปทอล์กนี้มาเมื่อ 2026-11-05
 
 **คืออะไร:** Claude Code มีสกิลในตัว `/run` (เปิดแอปดูผล) `/verify` (build และรันแอปจริงเพื่อยืนยันว่างานทำได้ ไม่ใช้เทสต์หรือ type check แทน) และ `/run-skill-generator` (บันทึกสูตรเปิดแอปที่ใช้ได้จริงเป็นสกิลของโปรเจกต์ที่ `.claude/skills/run-<ชื่อ>/` แล้ว `/run` `/verify` และ agent ทุกตัวใน repo ใช้สูตรนี้) · ทอล์กแนะนำให้มีสกิลตรวจงานชุดเดียวของโปรเจกต์ที่บอกวิธียกระบบ ตัวตนที่ใช้ล็อกอิน สคริปต์เตรียม state และ smoke test บนเบราว์เซอร์ และ**ให้สกิลแก้ตัวเองทุกครั้งที่เจอสิ่งที่ขวาง** คนถัดไปจะไม่ติดซ้ำ
 **แก้ปัญหาอะไรของเรา:** ชุดตอนนี้บอกว่า (playbook ขั้น 3b) ถ้าไม่มี e2e ใน repo ให้ commit สคริปต์ตรวจของแต่ละใบงานไว้ที่ `.scratch/<feature>/verification/` ในโปรเจกต์ระบบหลังบ้านที่ลอง I-005 ฟีเจอร์เดียวมีสคริปต์ยกระบบ 9 ชุดสำหรับ 9 ใบงาน ยาวเท่ากันชุดละ 109 บรรทัด ต่างกันแค่เลขใบ พอร์ต ชื่อฐานสำเนา และเลข Redis DB บวกสคริปต์ตรวจอีก 9 ชุด (รวมราว 4,100 บรรทัด) ทุกใบงาน agent ต้องหาวิธียกระบบ ล็อกอิน และเตรียมข้อมูลใหม่ ความรู้ที่ได้จากการติดปัญหา (เช่น ต้องใช้ `detect --cdp` เพราะหน้าแอปต้องล็อกอิน) อยู่แค่ในสคริปต์ของใบนั้น
@@ -240,7 +240,7 @@
 **คำแนะนำของ Claude:** ควรลอง เป็นความเจ็บปวดที่เห็นจริงในโปรเจกต์ที่ใช้ชุด (สคริปต์ซ้ำ 9 ชุด) และใช้ของที่มากับ Claude Code ไม่มีค่าใช้จ่าย แต่อย่าตั้งชื่อ `verify` จนกว่าจะรู้ว่าการรันก่อนทุก commit คุ้มกับเวลาที่เพิ่ม
 
 **การอนุมัติ:**
-- (ว่าง จนกว่าเจ้าของจะตัดสิน)
+- 2026-11-05 · อนุมัติให้ลอง · เจ้าของ: "อนุมัติ I-006 ให้ลอง"
 
 ---
 
