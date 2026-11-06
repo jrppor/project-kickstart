@@ -34,7 +34,7 @@ cmd //c mklink /J "%USERPROFILE%\.claude\skills\kickstart" "C:\Coding\project-ki
 1 ตั้ง repo             templates + /setup-matt-pocock-skills  P1
 2 คำศัพท์ + ตัดสินใจ     /grill-with-docs → GLOSSARY.md + ADR    P2
 2.5 ออกแบบหน้าจอ        ADR ด้านการออกแบบ + แผนผังหน้าจอ + prototype (เฉพาะที่มีหน้าจอ)   P2.5
-3 โครงเปล่าที่รันได้      3a ผังโฟลเดอร์ (รออนุมัติ) → 3b walking skeleton + ด่านตรวจ  P3a/P3b
+3 โครงเปล่าที่รันได้      3a ผังโฟลเดอร์ (รออนุมัติ) → 3b walking skeleton + ด่านตรวจ → 3c สกิลยกระบบ  P3a–P3c
 ── วนต่อฟีเจอร์ ─────────────────────────────────────────────────────
 4 สเปก                 คุย → /to-spec                          P4
 5 ticket               /to-tickets (ชิ้นแนวตั้ง + blocked by)     P5
@@ -56,10 +56,10 @@ A นำเข้า               สำรวจ → แม่แบบ (ร�
 | [02-prompts.md](02-prompts.md) | พรอมต์ P0–P9 และ PA1–PA4 (โปรเจกต์ที่มีอยู่แล้ว) ที่ `/kickstart` อ่านไปทำ (คัดลอกใช้เองได้) |
 | [04-owner-preferences.md](04-owner-preferences.md) | หลักที่ใช้ทุกโปรเจกต์ ไม่ผูก stack (โครงที่องค์กรคุ้นเคย ชื่อ secret วิธีถามและ commit) แก้ให้ตรงกับวิธีทำงานของคุณได้ |
 | [03-project-shapes.md](03-project-shapes.md) | รูปแบบโปรเจกต์ทุกแบบ: โครงเปล่าที่รันได้ · วิธีให้ Claude ดูผลเอง · ด่านตรวจ · หมวดมาตรฐานที่ต้องเก็บ |
-| [templates/CLAUDE.md](templates/CLAUDE.md) | โครง CLAUDE.md: รูปแบบและส่วนประกอบ · คำสั่ง · วิธีดูผลงานจริง · ด่านตรวจ · ข้อควรรู้ |
+| [templates/CLAUDE.md](templates/CLAUDE.md) | โครง CLAUDE.md (เพดาน 8,000 ตัวอักษร): รูปแบบและส่วนประกอบ · คำสั่ง · วิธีดูผลงานจริง · ด่านตรวจ · ตารางชี้ทางไป `docs/guides/` · ข้อควรรู้ |
 | [templates/CODING_STANDARDS.md](templates/CODING_STANDARDS.md) | มาตรฐานโค้ดที่ `/code-review` ใช้ตรวจ: ส่วนกลางทุกโปรเจกต์ · หมวดตามส่วนประกอบ (SQL, API, FE, UI, APP, CLI, WORKER, LIB) · ภาคผนวกโดเมน (เงิน ธนาคาร หลักทรัพย์ audit) · ภาคผนวกภาษา (Go, C#, Java, TS/React/Next.js, Angular) |
 | [templates/.claude/settings.json](templates/.claude/settings.json) | กฎห้าม (force push, `--no-verify`, อ่าน `.env`) · กฎที่ต้องถามก่อน (reset --hard, clean, checkout --, worktree remove --force, rm -rf, down -v) · ต่อ hooks `PostToolUse`, `Stop` และ `SubagentStop` |
-| [templates/.claude/hooks/verify.mjs](templates/.claude/hooks/verify.mjs) | ด่านตรวจที่รันเฉพาะส่วนที่เปลี่ยน ก่อนจบเทิร์นของ session หลักและก่อน agent ใน worktree ส่งงาน มี formatter หลังแก้ไฟล์ และตัวอย่าง `CHECKS` ของ Go, Node, .NET (solution filter), Python, Flutter, สคริปต์ของคลัง และโปรเจกต์ส่วนเดียว |
+| [templates/.claude/hooks/verify.mjs](templates/.claude/hooks/verify.mjs) | ด่านตรวจที่รันเฉพาะส่วนที่เปลี่ยน ก่อนจบเทิร์นของ session หลักและก่อน agent ใน worktree ส่งงาน มี formatter หลังแก้ไฟล์ วัดความยาว CLAUDE.md (เตือนเมื่อเกินเพดาน บล็อกเมื่อเกิน 1.5 เท่าและงานนั้นแก้ CLAUDE.md) และตัวอย่าง `CHECKS` ของ Go, Node, .NET (solution filter), Python, Flutter, สคริปต์ของคลัง และโปรเจกต์ส่วนเดียว |
 | [templates/.claude/launch.json](templates/.claude/launch.json) | เฉพาะโปรเจกต์ที่มีหน้าเว็บ: ให้ Claude เปิด dev server และ prototype ใน browser pane เอง ผ่าน `scripts/run.mjs` |
 | [templates/scripts/](templates/scripts/) | `run.mjs` รันทีละส่วนประกอบโดยโหลด secret จาก `.env` และสร้าง secret ของ dev ให้ครั้งแรก · `serve` เปิดไฟล์ HTML นิ่ง · `dev-env.mjs` พร้อมเทสต์ |
 | [templates/.worktreeinclude](templates/.worktreeinclude) | ไฟล์ที่ git ignore แต่ worktree ของ agent ต้องมี (`.env`) Claude Code คัดลอกให้ตอนสร้าง worktree |
@@ -88,7 +88,7 @@ A นำเข้า               สำรวจ → แม่แบบ (ร�
 
 1. **ของใหม่ต้องผ่านการอนุมัติของเจ้าของ 2 ครั้ง** เขียนเป็นใบเสนอใน [ideas.md](ideas.md) (ประโยชน์ · ข้อดีข้อเสีย · ต้นทุน · ทางเลือก · เกณฑ์วัดผล) แล้วรอเจ้าของ **อนุมัติให้ลอง** ลองในโปรเจกต์จริงตามเกณฑ์ แล้วรอเจ้าของ **อนุมัติให้รับเข้าแผน** อีกครั้ง Claude และงานอัตโนมัติเสนอได้อย่างเดียว ห้ามแก้แผน พรอมต์ หรือแม่แบบตามข้อเสนอที่ยังไม่ได้อนุมัติ
 2. **อัปเดตจากความเจ็บปวด ไม่ใช่จากข่าว** แหล่งที่ดีที่สุดคือสิ่งที่พลาดซ้ำในโปรเจกต์ (P9) และผลของ "ตรวจสุขภาพ repo"
-3. **ทุก 7 วันมีงานอัตโนมัติสรุปของใหม่** ของ Claude Code สกิล และประกาศของ Anthropic ลง [ideas.md](ideas.md) (commit ไว้ในเครื่อง ยังไม่ push) คุณเลือกว่าจะลองข้อไหน
+3. **ทุก 7 วันมีงานอัตโนมัติสรุปของใหม่** ของ Claude Code สกิล และประกาศของ Anthropic ลง [ideas.md](ideas.md) (commit แล้ว push) คุณเลือกว่าจะลองข้อไหน
    นอกจากนี้ให้สังเกตว่ามีขั้นไหนในแผนที่ข้ามเป็นประจำ ขั้นที่ข้ามเป็นประจำให้ตัดทิ้ง
 4. **เพิ่มอะไรก็ต้องตัดอะไรด้วย** อย่าให้คู่มือยาวขึ้นเรื่อยๆ
 5. **ทุกการเปลี่ยนบันทึกใน [CHANGELOG.md](CHANGELOG.md)** เปลี่ยนอะไร · เพราะอะไร · ลองกับโปรเจกต์ไหนแล้ว · อนุมัติเมื่อไร (อ้างรหัส `I-NNN` ถ้ามาจาก ideas.md)
