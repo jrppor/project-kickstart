@@ -5,8 +5,8 @@
 //   subagent-stop  The same checks when a subagent finishes, but only for one that worked in its own worktree
 //                  (e.g. /implement-spec workers). Stop does not fire for subagents, so without this they are never gated.
 //   format         After an Edit/Write, format the edited file. A formatter error (e.g. a syntax error) goes back to Claude.
-// A stop also measures CLAUDE.md (CLAUDE_MD_LIMIT): over the limit is a warning to the user that does not block;
-//                  over 1.5x the limit blocks, but only when this run edited CLAUDE.md (an old long file must not block other work).
+// A stop also measures CLAUDE.md and docs/progress.md (LENGTH_LIMITED_DOCS): over the limit is a warning to the user that does
+//                  not block; over 1.5x the limit blocks, but only when this run edited that file (an old long file must not block other work).
 // The last green run is kept per worktree in <git-dir>/claude-verify.json, so an unchanged area is not re-checked.
 // {gitDir} in a command is this worktree's git dir (e.g. a build output that must not lock the dev server's bin/).
 //
@@ -65,6 +65,23 @@ const OUTPUT_TAIL_LINES = 60;
 // เพดาน CLAUDE.md ที่รากคลัง นับเป็นตัวอักษร (ไม่ใช่ไบต์ ไม่นับ \r) ทุก session และทุก agent อ่านทั้งไฟล์ก่อนเริ่มงาน
 // รายละเอียดเฉพาะเรื่องย้ายไป docs/guides/<เรื่อง>.md แล้วเหลือบรรทัดชี้ทางใน CLAUDE.md
 const CLAUDE_MD_LIMIT = { chars: 8000, lineChars: 500, redFactor: 1.5 };
+// เพดาน docs/progress.md ใช้กติกาเดียวกัน แต่ไม่จำกัดต่อบรรทัด (แถวของตารางฟีเจอร์เป็นบรรทัดเดียวที่ยาวได้) ฟีเจอร์ที่ merge แล้วเหลือแถวเดียว ประวัติอยู่ที่ .scratch/<ฟีเจอร์>/log.md
+const PROGRESS_LIMIT = { chars: 8000, lineChars: Infinity, redFactor: 1.5 };
+// ไฟล์ที่ถูกวัดความยาวทุกครั้งที่จบเทิร์น: เหลือง = เตือนผู้ใช้ ไม่บล็อก · แดง (เกิน 1.5 เท่า) = บล็อกเฉพาะเมื่อรอบนั้นแก้ไฟล์นี้เอง
+const LENGTH_LIMITED_DOCS = [
+  {
+    name: "claude-md",
+    file: "CLAUDE.md",
+    limit: CLAUDE_MD_LIMIT,
+    how: "ย้ายรายละเอียดเฉพาะเรื่องไป docs/guides/<เรื่อง>.md ทั้งเนื้อหาเดิม (ห้ามสรุปทิ้ง) แล้วเหลือบรรทัดชี้ทางในตาราง \"ก่อนแตะเรื่องไหน อ่านอะไร\" ของ CLAUDE.md",
+  },
+  {
+    name: "progress",
+    file: "docs/progress.md",
+    limit: PROGRESS_LIMIT,
+    how: "ฟีเจอร์ที่ merge แล้วเหลือแถวเดียว (ชื่อ · commit ที่ merge · ลิงก์ .scratch/<ฟีเจอร์>/) ย้ายประวัติขั้นและเรื่องที่ตัดสินแล้วทั้งก้อนไป .scratch/<ฟีเจอร์>/log.md (ห้ามสรุปทิ้ง) ตามพรอมต์ P9",
+  },
+];
 
 const input = parseInput();
 const mode = process.argv[2];
@@ -180,15 +197,18 @@ function stop() {
     if (!failed) stamp.checks[check.name] = print;
   }
 
-  const claudeMd = claudeMdNotice();
-  const blockClaudeMd = claudeMd?.level === "red" && changed.includes("CLAUDE.md");
-  if (blockClaudeMd) failures.push(`[claude-md] ${claudeMd.text}`);
+  const warnings = [];
+  for (const doc of LENGTH_LIMITED_DOCS) {
+    const notice = docNotice(doc);
+    if (notice?.level === "red" && changed.includes(doc.file)) failures.push(`[${doc.name}] ${notice.text}`);
+    else if (notice) warnings.push(notice.text);
+  }
 
   if (failures.length === 0) {
     stamp.head = head;
     delete stamp.lastFailure;
     writeJson(stampPath, stamp);
-    if (claudeMd) process.stdout.write(JSON.stringify({ systemMessage: claudeMd.text }));
+    if (warnings.length > 0) process.stdout.write(JSON.stringify({ systemMessage: warnings.join("\n\n") }));
     return;
   }
 
@@ -206,12 +226,11 @@ function stop() {
   process.exit(2);
 }
 
-// null when CLAUDE.md is missing or within the limit; otherwise { level: "yellow" | "red", text }.
-function claudeMdNotice() {
-  const file = path.join(root, "CLAUDE.md");
+// null when the file is missing or within its limit; otherwise { level: "yellow" | "red", text }.
+function docNotice({ file: rel, limit: { chars: limit, lineChars, redFactor }, how }) {
+  const file = path.join(root, rel);
   if (!existsSync(file)) return null;
   const text = readFileSync(file, "utf8").replaceAll("\r", "");
-  const { chars: limit, lineChars, redFactor } = CLAUDE_MD_LIMIT;
   const chars = [...text].length;
   const long = text.split("\n").map((line, i) => ({ line: i + 1, length: [...line].length })).filter((l) => l.length > lineChars);
   const red = chars > limit * redFactor || long.some((l) => l.length > lineChars * redFactor);
@@ -222,8 +241,7 @@ function claudeMdNotice() {
     const shown = long.slice(0, 10).map((l) => `บรรทัด ${l.line} ยาว ${l.length}`).join(" · ");
     parts.push(`บรรทัดเกิน ${lineChars} ตัวอักษร: ${shown}${long.length > 10 ? ` · และอีก ${long.length - 10} บรรทัด` : ""}`);
   }
-  const head = red ? "CLAUDE.md ยาวเกินเพดานมาก" : "CLAUDE.md เกินเพดาน (เตือน ยังไม่บล็อก)";
-  const how = "ย้ายรายละเอียดเฉพาะเรื่องไป docs/guides/<เรื่อง>.md ทั้งเนื้อหาเดิม (ห้ามสรุปทิ้ง) แล้วเหลือบรรทัดชี้ทางในตาราง \"ก่อนแตะเรื่องไหน อ่านอะไร\" ของ CLAUDE.md";
+  const head = red ? `${rel} ยาวเกินเพดานมาก` : `${rel} เกินเพดาน (เตือน ยังไม่บล็อก)`;
   return { level: red ? "red" : "yellow", text: `${head}: ${parts.join(" · ")}\n${how}` };
 }
 
