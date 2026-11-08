@@ -82,6 +82,7 @@ argument-hint: "[status | feature <ชื่อ> | step <เลขขั้น> 
    - ไม่มี `.worktreeinclude` แต่มี `.env` ที่ git ignore → สร้างจากแม่แบบ
    - `.claude/settings.json` ไม่มี `"allow": ["Edit(/**)"]` → เพิ่ม (Edit/Write ใน auto mode จะไม่ต้องผ่านตัวตรวจทุกครั้ง)
    - หัวข้อ "เตรียม worktree" ไม่มีข้อห้ามใช้คำสั่งในรายการ `ask` หรือข้อห้ามสร้างข้อมูลทดสอบใน DB ของ dev → เพิ่มจากแม่แบบ
+   - `FORMATTERS` ตัวที่เรียกของใน `node_modules` หรือ venv แต่ไม่มี `needs` → เพิ่ม `needs` (ไม่งั้น hook ล้มทุกครั้งที่ agent แก้ไฟล์ใน worktree ที่ยังไม่ได้ติดตั้ง)
    - `verify.mjs` ไม่มี `CLAUDE_MD_LIMIT` → คัดลอกส่วนท้ายแบบเดียวกับข้อบน · CLAUDE.md ไม่มีตาราง "ก่อนแตะเรื่องไหน อ่านอะไร" → เพิ่มจากแม่แบบ ถ้าเกินเพดานให้ทำตาม "ย้ายรายละเอียดออกจาก CLAUDE.md" ใน P9
    - ต้องยกระบบเพื่อดูผล (เว็บ API worker mobile desktop) แต่ไม่มี `.claude/skills/run-*/` หรือ CLAUDE.md ไม่มีบรรทัด "การตรวจบนระบบจริง" → ทำตาม **P3c** (สคริปต์ยกระบบที่คัดลอกต่อใบงานใน `.scratch/` รวมเข้าสกิลนั้น)
    - **`.claude/settings.json` ห้ามเขียนเอง** auto mode ปฏิเสธการแก้ไฟล์สิทธิ์ของตัวเองทุกครั้ง (Self-Modification) และห้ามหาทางอ้อม

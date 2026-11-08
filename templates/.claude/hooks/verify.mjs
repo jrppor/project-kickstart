@@ -56,7 +56,8 @@ const CHECKS = [
 const FORMATTERS = [
   // { match: /\.go$/, cmd: (file) => ["gofmt", ["-w", file]] },
   // { match: /\.py$/, cmd: (file) => ["ruff", ["format", file]] },
-  // needs: ข้ามเมื่อยังไม่ได้ติดตั้ง (path จากราก repo)
+  // needs: ข้ามเมื่อยังไม่ได้ติดตั้ง (path จากรากของ worktree ที่ไฟล์อยู่) ใส่ทุกตัวที่เรียกของใน node_modules หรือ venv
+  // เพราะ worktree ที่ agent เพิ่งสร้างยังไม่ได้ติดตั้ง ถ้าไม่ใส่ hook จะล้มทุกครั้งที่ agent แก้ไฟล์ · cmd รับ (file, base) base = รากของ worktree นั้น
   // { match: /^.*[\\/]ui[\\/].*\.(tsx?|css)$/, needs: "ui/node_modules", cmd: (file) => ["node", ["ui/node_modules/prettier/bin/prettier.cjs", "--write", file]] },
 ];
 
@@ -138,11 +139,13 @@ function format() {
   const file = input.tool_input?.file_path;
   const formatter = file && FORMATTERS.find((f) => f.match.test(file));
   if (!formatter || !existsSync(file)) return;
-  if (formatter.needs && !existsSync(path.join(root, formatter.needs))) return;
-  const [bin, args] = formatter.cmd(file);
-  const r = spawnSync(bin, args, { cwd: root, encoding: "utf8" });
+  // the worktree the file lives in, not the one the session sits in: an agent may edit across worktrees
+  const base = toplevel(path.dirname(file)) ?? root;
+  if (formatter.needs && !existsSync(path.join(base, formatter.needs))) return;
+  const [bin, args] = formatter.cmd(file, base);
+  const r = spawnSync(bin, args, { cwd: base, encoding: "utf8" });
   if (r.status !== 0) {
-    process.stderr.write(`${bin} ${path.relative(root, file)} ไม่ผ่าน:\n${r.stderr || r.error?.message}`);
+    process.stderr.write(`${bin} ${path.relative(base, file)} ไม่ผ่าน:\n${r.stderr || r.error?.message}`);
     process.exit(2);
   }
 }
