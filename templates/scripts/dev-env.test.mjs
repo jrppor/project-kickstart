@@ -33,3 +33,16 @@ test('creates the file when it does not exist', () => {
   const file = envFile();
   assert.deepEqual(ensureSecrets(file, ['APP_KEY']), ['APP_KEY']);
 });
+
+test('reads quoted values, inline comments and export lines', () => {
+  const values = parseDotEnv('A="q v # kept"\nB=1 # note\nexport C=x\nD=a#b\nE=\'s\'');
+  assert.deepEqual(values, { A: 'q v # kept', B: '1', C: 'x', D: 'a#b', E: 's' });
+});
+
+test('fills a blank line in place in a CRLF file', () => {
+  const file = envFile('APP_KEY=\r\nAPP_OTHER=kept\r\n');
+  ensureSecrets(file, ['APP_KEY']);
+  const text = readFileSync(file, 'utf8');
+  assert.equal(text.match(/APP_KEY=/g).length, 1);
+  assert.ok(text.endsWith('APP_OTHER=kept\r\n'));
+});

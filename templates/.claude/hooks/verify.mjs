@@ -14,6 +14,7 @@
 // area คือ regex ของ path ที่ถ้าเปลี่ยนแล้วต้องตรวจชุดนี้ cwd คือโฟลเดอร์ที่รันคำสั่ง (โปรเจกต์ส่วนเดียวใช้ ".")
 // cmds เป็นรายการคำสั่ง หรือฟังก์ชันที่รับไฟล์ที่เปลี่ยน (path จากราก repo) แล้วคืนรายการคำสั่ง
 // area ใส่ไฟล์ของส่วนอื่นที่ส่วนนี้พึ่งได้ เช่น ไฟล์สัญญา API ที่ ui ใช้ หรือไฟล์ตั้งค่า build ที่รากคลัง
+// needs คือไฟล์หรือโฟลเดอร์ (จาก cwd) ที่ต้องมีก่อนรัน เช่น node_modules หรือ .venv · install คือคำสั่งติดตั้งที่จะบอกเมื่อยังไม่มี
 // ตัวอย่างข้างล่างเป็นแค่ stack ตัวอย่าง ชื่อโฟลเดอร์ (api/, ui/, app/) ให้เปลี่ยนตามโปรเจกต์จริง
 // เทสต์ที่ช้า (integration ที่ต้องใช้ DB จริง, e2e, build แอปเต็ม) ไม่ต้องใส่ ให้เขียนไว้ใน CLAUDE.md ว่ารันก่อน commit
 import { execFileSync, spawnSync } from "node:child_process";
@@ -29,7 +30,7 @@ const CHECKS = [
   // { name: "api", area: /^api\/.*\.(go|mod|sum|sql)$/, cwd: "api", cmds: ["go build ./...", "go vet ./..."] },
   //
   // Node / Next.js / TypeScript (ไฟล์สัญญา API ที่ ui ใช้อยู่ใน area ด้วย แก้สัญญาแล้ว ui ถูกตรวจทันที)
-  // { name: "ui", area: /^ui\/.*\.(tsx?|mjs|cjs|js|json)$|^api\/openapi\.json$/, cwd: "ui", needs: "node_modules",
+  // { name: "ui", area: /^ui\/.*\.(tsx?|mjs|cjs|js|json)$|^api\/openapi\.json$/, cwd: "ui", needs: "node_modules", install: "npm ci",
   //   cmds: ["npx tsc --noEmit", "npx eslint .", "npx vitest run --silent"] },
   //
   // .NET: build ลง git dir เพื่อไม่ชนกับ dotnet run ที่ล็อก bin/ ไว้
@@ -41,7 +42,7 @@ const CHECKS = [
   //
   // สคริปต์ของคลัง: ตรวจทุกไฟล์ที่แก้ (cmds เป็นฟังก์ชัน) แล้วรันเทสต์ของสคริปต์
   // { name: "tooling", area: /^scripts\/.*\.mjs$/, cwd: ".",
-  //   cmds: (files) => [...files.map((f) => `node --check ${f}`), `node --test "scripts/*.test.mjs"`] },
+  //   cmds: (files) => [...files.map((f) => `node --check "${f}"`), `node --test "scripts/*.test.mjs"`] },
   //
   // Python
   // { name: "app", area: /^(src|tests)\/.*\.py$|^pyproject\.toml$/, cwd: ".", cmds: ["ruff check .", "pytest -q -x"] },
@@ -54,6 +55,8 @@ const CHECKS = [
 ];
 
 const FORMATTERS = [
+  // cmd คืน [โปรแกรม, argument] รันตรงโดยไม่ผ่าน shell: บน Windows ห้ามใช้ npx/npm/pnpm (เป็นไฟล์ .cmd) ให้เรียก node กับ path ของสคริปต์แทน
+  // โปรแกรมที่หาไม่เจอบนเครื่อง = ข้ามพร้อมคำเตือน ไม่บล็อกการแก้ไฟล์
   // { match: /\.go$/, cmd: (file) => ["gofmt", ["-w", file]] },
   // { match: /\.py$/, cmd: (file) => ["ruff", ["format", file]] },
   // needs: ข้ามเมื่อยังไม่ได้ติดตั้ง (path จากรากของ worktree ที่ไฟล์อยู่) ใส่ทุกตัวที่เรียกของใน node_modules หรือ venv
@@ -62,6 +65,8 @@ const FORMATTERS = [
 ];
 
 const OUTPUT_TAIL_LINES = 60;
+// เวลาสูงสุดต่อหนึ่งคำสั่งของด่าน คำสั่งที่ค้าง (เช่น เทสต์โหมด watch) ถูกตัดแล้วรายงานเป็นด่านแดง ไม่ปล่อยให้ hook หมดเวลาเงียบๆ
+const CHECK_TIMEOUT_MS = 120_000;
 // เพดาน CLAUDE.md ที่รากคลัง นับเป็นตัวอักษร (ไม่ใช่ไบต์ ไม่นับ \r) ทุก session และทุก agent อ่านทั้งไฟล์ก่อนเริ่มงาน
 // รายละเอียดเฉพาะเรื่องย้ายไป docs/guides/<เรื่อง>.md แล้วเหลือบรรทัดชี้ทางใน CLAUDE.md
 const CLAUDE_MD_LIMIT = { chars: 8000, lineChars: 500, redFactor: 1.5 };
@@ -79,7 +84,7 @@ const LENGTH_LIMITED_DOCS = [
     name: "progress",
     file: "docs/progress.md",
     limit: PROGRESS_LIMIT,
-    how: "ฟีเจอร์ที่ merge แล้วเหลือแถวเดียว (ชื่อ · commit ที่ merge · ลิงก์ .scratch/<ฟีเจอร์>/) ย้ายประวัติขั้นและเรื่องที่ตัดสินแล้วทั้งก้อนไป .scratch/<ฟีเจอร์>/log.md (ห้ามสรุปทิ้ง) ตามพรอมต์ P9",
+    how: "ฟีเจอร์ที่ merge แล้วเหลือแถวเดียว (ชื่อ · commit ที่ merge · วันที่ merge · ลิงก์ .scratch/<ฟีเจอร์>/) ย้ายประวัติขั้นและเรื่องที่ตัดสินแล้วทั้งก้อนไป .scratch/<ฟีเจอร์>/log.md (ห้ามสรุปทิ้ง) ตามพรอมต์ P9",
   },
 ];
 
@@ -161,6 +166,11 @@ function format() {
   if (formatter.needs && !existsSync(path.join(base, formatter.needs))) return;
   const [bin, args] = formatter.cmd(file, base);
   const r = spawnSync(bin, args, { cwd: base, encoding: "utf8" });
+  if (r.error?.code === "ENOENT") {
+    // the formatter is not installed on this machine: warn, never block every edit
+    process.stdout.write(JSON.stringify({ systemMessage: `ข้าม formatter: ไม่พบโปรแกรม ${bin} บนเครื่องนี้ (ติดตั้ง หรือแก้ FORMATTERS ใน .claude/hooks/verify.mjs)` }));
+    return;
+  }
   if (r.status !== 0) {
     process.stderr.write(`${bin} ${path.relative(base, file)} ไม่ผ่าน:\n${r.stderr || r.error?.message}`);
     process.exit(2);
@@ -172,10 +182,11 @@ function stop() {
   const stampPath = path.join(gitDir, "claude-verify.json");
   const stamp = readJson(stampPath);
   stamp.checks ??= {};
-  const head = gitText(root, "rev-parse", "HEAD");
+  const head = currentHead(); // null in a repo with no commit yet
   const changed = changedFiles(stamp.head ?? worktreeBase(gitDir), head);
 
   const failures = [];
+  const failedKeys = []; // which check and command failed, without its output (timings in the output change every run)
   for (const check of CHECKS) {
     const files = changed.filter((f) => check.area.test(f));
     if (files.length === 0) continue;
@@ -184,14 +195,18 @@ function stop() {
 
     const dir = path.join(root, check.cwd);
     if (check.needs && !existsSync(path.join(dir, check.needs))) {
-      failures.push(`[${check.name}] ไม่มี ${check.cwd}/${check.needs} ให้รัน \`npm ci\` ใน ${check.cwd}/ ก่อน แล้วจบงานใหม่`);
+      const install = check.install ? `ให้รัน \`${check.install}\`` : "ให้ติดตั้ง dependency ของส่วนนี้";
+      failures.push(`[${check.name}] ไม่มี ${check.cwd}/${check.needs} ${install} ใน ${check.cwd}/ ก่อน แล้วจบงานใหม่`);
+      failedKeys.push(`${check.name}:needs`);
       continue;
     }
     const cmds = typeof check.cmds === "function" ? check.cmds(files) : check.cmds;
     const failed = cmds.some((cmd) => {
-      const r = spawnSync(cmd.replaceAll("{gitDir}", gitDir), { cwd: dir, shell: true, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+      const r = spawnSync(cmd.replaceAll("{gitDir}", gitDir), { cwd: dir, shell: true, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: CHECK_TIMEOUT_MS });
       if (r.status === 0) return false;
-      failures.push(`[${check.name}] \`${cmd}\` ล้ม (exit ${r.status}) ใน ${check.cwd}/\n${tail(`${r.stdout}${r.stderr}`)}`);
+      const why = r.error?.code === "ETIMEDOUT" ? `เกิน ${CHECK_TIMEOUT_MS / 1000} วินาที คำสั่งค้างหรือช้าเกินสำหรับด่าน` : `exit ${r.status}`;
+      failures.push(`[${check.name}] \`${cmd}\` ล้ม (${why}) ใน ${check.cwd}/\n${tail(`${r.stdout ?? ""}${r.stderr ?? ""}`)}`);
+      failedKeys.push(`${check.name}:${cmd}`);
       return true;
     });
     if (!failed) stamp.checks[check.name] = print;
@@ -200,7 +215,10 @@ function stop() {
   const warnings = [];
   for (const doc of LENGTH_LIMITED_DOCS) {
     const notice = docNotice(doc);
-    if (notice?.level === "red" && changed.includes(doc.file)) failures.push(`[${doc.name}] ${notice.text}`);
+    if (notice?.level === "red" && changed.includes(doc.file)) {
+      failures.push(`[${doc.name}] ${notice.text}`);
+      failedKeys.push(`${doc.name}:length`);
+    }
     else if (notice) warnings.push(notice.text);
   }
 
@@ -213,7 +231,7 @@ function stop() {
   }
 
   const report = failures.join("\n\n");
-  const reportHash = sha(report);
+  const reportHash = sha(failedKeys.join("\n"));
   if (input.stop_hook_active && stamp.lastFailure === reportHash) {
     // Same failure as the previous block: Claude could not fix it, so let the turn end and tell the user.
     writeJson(stampPath, stamp);
@@ -286,6 +304,14 @@ function fingerprint(files) {
     hash.update(f).update("\0").update(existsSync(full) ? readFileSync(full) : "<deleted>").update("\0");
   }
   return hash.digest("hex");
+}
+
+function currentHead() {
+  try {
+    return gitText(root, "rev-parse", "--verify", "--quiet", "HEAD");
+  } catch {
+    return null;
+  }
 }
 
 function gitRaw(cwd, ...args) {

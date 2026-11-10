@@ -6,10 +6,17 @@ import { randomBytes } from 'node:crypto';
 export function parseDotEnv(text) {
   const values = {};
   for (const line of text.split(/\r?\n/)) {
-    const match = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/.exec(line);
-    if (match) values[match[1]] = match[2];
+    const match = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/.exec(line);
+    if (match) values[match[1]] = unquote(match[2]);
   }
   return values;
+}
+
+// ค่าในเครื่องหมายคำพูดใช้ตามที่เขียน (มี # และช่องว่างได้) ค่าที่ไม่มีเครื่องหมายคำพูดตัดคอมเมนต์ท้ายบรรทัด (ช่องว่างตามด้วย #) ออก
+function unquote(raw) {
+  const quoted = /^(["'])(.*)\1(\s+#.*)?$/.exec(raw);
+  if (quoted) return quoted[2];
+  return raw.replace(/\s+#.*$/, '');
 }
 
 /**
@@ -22,7 +29,7 @@ export function ensureSecrets(file, names) {
   const created = names.filter((name) => !existing[name]);
   for (const name of created) {
     const line = `${name}=${randomBytes(48).toString('base64')}`;
-    const blank = new RegExp(`^[ \\t]*${name}[ \\t]*=[ \\t]*$`, 'm');
+    const blank = new RegExp(`^[ \\t]*${name}[ \\t]*=[ \\t]*(?=\\r?$)`, 'm');
     if (blank.test(text)) text = text.replace(blank, line);
     else text = `${text}${text === '' || text.endsWith('\n') ? '' : '\n'}${line}\n`;
   }

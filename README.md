@@ -19,13 +19,20 @@ Claude จะสำรวจแบบอ่านอย่างเดียว�
 
 ### ติดตั้งสกิล `/kickstart` (ครั้งเดียวต่อเครื่อง)
 
-สกิลอยู่ใน [skill/](skill/) ของ repo นี้ ลิงก์เข้าโฟลเดอร์สกิลด้วย junction เพื่อให้แก้ที่ repo นี้แล้วมีผลทันที
+สกิลอยู่ใน [skill/](skill/) ของ repo นี้ ลิงก์เข้าโฟลเดอร์สกิลของ Claude เพื่อให้แก้ที่ repo นี้แล้วมีผลทันที
+รันคำสั่งจากโฟลเดอร์ที่ clone ชุดนี้ไว้ (clone ไว้ที่ไหนก็ได้ สกิลหาโฟลเดอร์ของชุดจากลิงก์เอง ห้ามคัดลอกโฟลเดอร์ `skill/` ไปแทนการลิงก์)
 
-```bash
-cmd //c mklink /J "%USERPROFILE%\.claude\skills\kickstart" "C:\Coding\project-kickstart\skill"
+Windows (PowerShell):
+
+```powershell
+cmd /c mklink /J "$env:USERPROFILE\.claude\skills\kickstart" "$PWD\skill"
 ```
 
-สกิลอ่านไฟล์จาก `C:\Coding\project-kickstart` ถ้า clone ไว้ที่อื่น ให้แก้ path ใน `skill/SKILL.md`
+macOS และ Linux (ยังไม่ได้ลองบนเครื่องจริง):
+
+```bash
+mkdir -p ~/.claude/skills && ln -s "$PWD/skill" ~/.claude/skills/kickstart
+```
 
 ## ลำดับขั้นโดยย่อ
 
@@ -71,6 +78,7 @@ A นำเข้า               สำรวจ → แม่แบบ (ร�
 ## สิ่งที่ต้องมีบนเครื่อง
 
 - แอป Claude (Code tab) และสกิลชุด `~/.agents/skills` (setup-matt-pocock-skills, grill-with-docs, to-spec, to-tickets, implement, implement-spec, tdd, code-review, diagnosing-bugs, handoff, improve-codebase-architecture)
+  สกิลเสริมที่บางขั้นเรียกถ้ามี: frontend-design, grilling, project-planner, domain-modeling, run-skill-generator (ไม่มีก็ทำขั้นนั้นด้วยพรอมต์แทนได้)
 - `/security-review` มากับ Claude Code ไม่ต้องติดตั้งเพิ่ม (ไม่ใช่ `security-review` ชุดเก่าที่สร้างเอง)
 - Git, Node.js (ด่านตรวจเขียนด้วย Node) และเครื่องมือของ stack ที่เลือก
 - Docker Desktop ถ้าใช้ docker compose หรือ testcontainers

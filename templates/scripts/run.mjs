@@ -33,6 +33,9 @@ function toAppEnv(env) {
   // env.ASPNETCORE_ENVIRONMENT = 'Development';
 }
 
+// โปรแกรมที่เป็นไฟล์ .exe จริงบน Windows รันตรงได้ ตัวอื่นรันผ่าน shell
+const DIRECT_COMMANDS = ['node', 'dotnet', 'go', 'python', 'cargo', 'java'];
+
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const [target, ...rest] = process.argv.slice(2);
 
@@ -54,21 +57,38 @@ function run(name) {
   toAppEnv(env);
 
   const [command, args] = COMPONENTS[name];
-  // npm บน Windows เป็นไฟล์ .cmd ต้องรันผ่าน shell
-  const child = spawn(command, args, { cwd: root, env, stdio: 'inherit', shell: process.platform === 'win32' && command === 'npm' });
-  child.on('exit', (code) => process.exit(code ?? 0));
+  // บน Windows ตัวรันอย่าง npm, pnpm, yarn, npx, flutter, gradlew เป็นไฟล์ .cmd/.bat ต้องรันผ่าน shell
+  const viaShell = process.platform === 'win32' && !DIRECT_COMMANDS.includes(command);
+  const child = viaShell
+    ? spawn([command, ...args].map(quoteForShell).join(' '), { cwd: root, env, stdio: 'inherit', shell: true })
+    : spawn(command, args, { cwd: root, env, stdio: 'inherit' });
+  child.on('error', (error) => {
+    console.error(`รัน ${command} ไม่ได้: ${error.message}`);
+    process.exit(1);
+  });
+  // ถูกปิดด้วย signal (code เป็น null) ไม่นับว่าสำเร็จ
+  child.on('exit', (code) => process.exit(code ?? 1));
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal));
+}
+
+function quoteForShell(arg) {
+  return /^[\w@%+=:,./\\-]+$/.test(arg) ? arg : `"${arg.replaceAll('"', '\\"')}"`;
 }
 
 function serve(folder, port) {
   const base = join(root, folder ?? '.');
   const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json' };
   createServer((req, res) => {
-    let file = join(base, normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname)));
+    let file;
+    try {
+      file = join(base, normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname)));
+    } catch {
+      return res.writeHead(400).end('bad request');
+    }
     if (!file.startsWith(base)) return res.writeHead(403).end();
     if (existsSync(file) && statSync(file).isDirectory()) file = join(file, 'index.html');
     if (!existsSync(file)) return res.writeHead(404).end('not found');
     res.writeHead(200, { 'content-type': types[extname(file)] ?? 'application/octet-stream' });
     createReadStream(file).pipe(res);
-  }).listen(port, () => console.log(`เปิด ${folder} ที่ http://localhost:${port}`));
+  }).listen(port, '127.0.0.1', () => console.log(`เปิด ${folder} ที่ http://localhost:${port}`));
 }
