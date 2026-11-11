@@ -41,7 +41,8 @@ const CHECKS = [
   //          `dotnet test fast.slnf --no-build -nologo -v q --artifacts-path "{gitDir}/claude-verify-build"`] },
   //
   // สคริปต์ของคลัง: ตรวจทุกไฟล์ที่แก้ (cmds เป็นฟังก์ชัน) แล้วรันเทสต์ของสคริปต์
-  // { name: "tooling", area: /^scripts\/.*\.mjs$/, cwd: ".",
+  // area รวม .claude/hooks/ ด้วย เพื่อให้แก้ด่านแล้วเทสต์ของด่าน (scripts/verify.test.mjs) รันให้
+  // { name: "tooling", area: /^(scripts|\.claude\/hooks)\/.*\.mjs$/, cwd: ".",
   //   cmds: (files) => [...files.map((f) => `node --check "${f}"`), `node --test "scripts/*.test.mjs"`] },
   //
   // Python
