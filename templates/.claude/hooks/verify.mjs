@@ -67,6 +67,21 @@ const FORMATTERS = [
 const OUTPUT_TAIL_LINES = 60;
 // เวลาสูงสุดต่อหนึ่งคำสั่งของด่าน คำสั่งที่ค้าง (เช่น เทสต์โหมด watch) ถูกตัดแล้วรายงานเป็นด่านแดง ไม่ปล่อยให้ hook หมดเวลาเงียบๆ
 const CHECK_TIMEOUT_MS = 120_000;
+// รันคำสั่งของด่านผ่านตัวคุมเล็กๆ ที่ฆ่าทั้งต้นไม้โปรเซสเมื่อเกินเวลา (timeout ของ spawnSync ฆ่าได้แค่ shell ตัวหุ้ม โปรเซสลูกบน Windows ค้างต่อ)
+// ผ่านการทดสอบบน Windows แล้ว ส่วน macOS/Linux ใช้ process group (detached + kill -pid) ยังไม่ได้ลองบนเครื่องจริง
+const CHECK_RUNNER = `
+const { spawn, spawnSync } = require("node:child_process");
+const [cmd, ms] = [process.argv[1], Number(process.argv[2])];
+const win = process.platform === "win32";
+const child = spawn(cmd, { shell: true, stdio: "inherit", detached: !win });
+const timer = setTimeout(() => {
+  if (win) spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"]);
+  else try { process.kill(-child.pid, "SIGKILL"); } catch {}
+  process.exit(124);
+}, ms);
+child.on("exit", (code) => { clearTimeout(timer); process.exit(code ?? 1); });
+child.on("error", () => process.exit(1));
+`;
 // เพดาน CLAUDE.md ที่รากคลัง นับเป็นตัวอักษร (ไม่ใช่ไบต์ ไม่นับ \r) ทุก session และทุก agent อ่านทั้งไฟล์ก่อนเริ่มงาน
 // รายละเอียดเฉพาะเรื่องย้ายไป docs/guides/<เรื่อง>.md แล้วเหลือบรรทัดชี้ทางใน CLAUDE.md
 const CLAUDE_MD_LIMIT = { chars: 8000, lineChars: 500, redFactor: 1.5 };
@@ -202,9 +217,10 @@ function stop() {
     }
     const cmds = typeof check.cmds === "function" ? check.cmds(files) : check.cmds;
     const failed = cmds.some((cmd) => {
-      const r = spawnSync(cmd.replaceAll("{gitDir}", gitDir), { cwd: dir, shell: true, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: CHECK_TIMEOUT_MS });
+      const r = spawnSync(process.execPath, ["-e", CHECK_RUNNER, cmd.replaceAll("{gitDir}", gitDir), String(CHECK_TIMEOUT_MS)], { cwd: dir, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: CHECK_TIMEOUT_MS + 15_000 });
       if (r.status === 0) return false;
-      const why = r.error?.code === "ETIMEDOUT" ? `เกิน ${CHECK_TIMEOUT_MS / 1000} วินาที คำสั่งค้างหรือช้าเกินสำหรับด่าน` : `exit ${r.status}`;
+      const timedOut = r.status === 124 || r.error?.code === "ETIMEDOUT";
+      const why = timedOut ? `เกิน ${CHECK_TIMEOUT_MS / 1000} วินาที คำสั่งค้างหรือช้าเกินสำหรับด่าน` : `exit ${r.status}`;
       failures.push(`[${check.name}] \`${cmd}\` ล้ม (${why}) ใน ${check.cwd}/\n${tail(`${r.stdout ?? ""}${r.stderr ?? ""}`)}`);
       failedKeys.push(`${check.name}:${cmd}`);
       return true;
