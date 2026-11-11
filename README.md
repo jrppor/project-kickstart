@@ -5,6 +5,9 @@
 
 ## เริ่มตรงไหน
 
+**ครั้งแรกบนเครื่องนี้ ทำสองอย่างนี้ก่อน** (ครั้งเดียวต่อเครื่อง): ติดตั้ง Git และ Node.js แล้วทำตามหัวข้อ "สิ่งที่ต้องมีบนเครื่อง" (สกิลที่ต้องมี) กับ "ติดตั้งสกิล `/kickstart`" ด้านล่าง จากนั้นเปิด session ใหม่ ไม่งั้น `/kickstart` จะยังไม่ขึ้น
+ชุดนี้ clone ได้จาก `https://github.com/jrppor/project-kickstart` และใช้กับแอป Claude (Code tab) ตอนนี้ยังไม่ได้ยืนยันว่าใช้กับ Claude Code แบบ CLI ได้ครบทุกส่วน (ขั้น 2.5 และ 3 ใช้ browser pane ของแอป)
+
 1. อ่าน [01-playbook.md](01-playbook.md) หนึ่งรอบ เพื่อดูภาพรวมว่ามีกี่ขั้นและแต่ละขั้นต้องได้อะไร
 2. สร้างโฟลเดอร์โปรเจกต์ใหม่ เปิด session ของแอป Claude ในโฟลเดอร์นั้น แล้วพิมพ์ `/kickstart`
 3. ทำตามกล่อง "▶ ต่อไป" ท้ายทุกคำตอบ ขั้นที่ Claude ทำเองได้ สกิลจะทำให้เลย ขั้นที่ต้องใช้สกิลที่คุณต้องพิมพ์เอง
@@ -25,8 +28,11 @@ Claude จะสำรวจแบบอ่านอย่างเดียว�
 Windows (PowerShell):
 
 ```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.claude\skills" | Out-Null
 cmd /c mklink /J "$env:USERPROFILE\.claude\skills\kickstart" "$PWD\skill"
 ```
+
+ถ้าลิงก์ `kickstart` มีอยู่แล้ว คำสั่งจะแจ้ง error ซึ่งไม่เป็นไร (ลบลิงก์เดิมก่อนถ้าต้องการชี้ไปโฟลเดอร์ใหม่)
 
 macOS และ Linux (ยังไม่ได้ลองบนเครื่องจริง):
 
@@ -77,9 +83,25 @@ A นำเข้า               สำรวจ → แม่แบบ (ร�
 
 ## สิ่งที่ต้องมีบนเครื่อง
 
-- แอป Claude (Code tab) และสกิลชุด `~/.agents/skills` (setup-matt-pocock-skills, grill-with-docs, to-spec, to-tickets, implement, implement-spec, tdd, code-review, diagnosing-bugs, handoff, improve-codebase-architecture)
-  สกิลเสริมที่บางขั้นเรียกถ้ามี: frontend-design, grilling, project-planner, domain-modeling, run-skill-generator (ไม่มีก็ทำขั้นนั้นด้วยพรอมต์แทนได้)
-- `/security-review` มากับ Claude Code ไม่ต้องติดตั้งเพิ่ม (ไม่ใช่ `security-review` ชุดเก่าที่สร้างเอง)
+- แอป Claude (Code tab)
+- สกิลที่ชุดนี้เรียกใช้ (ตารางด้านล่าง) ชุดหลักมาจากคลัง [mattpocock/skills](https://github.com/mattpocock/skills) ติดตั้งด้วย `npx skills@latest add mattpocock/skills` (เลือกสกิลที่ต้องการและเลือก `setup-matt-pocock-skills` ด้วย) หรือเป็นปลั๊กอินของ Claude Code ตามคู่มือในคลังนั้น ตรวจชื่อสกิลกับคลังนั้นเมื่อ 2026-11-11 ผ่านการค้นหาและอ่านหน้าคลัง ยังไม่ได้ลองติดตั้งตามคำสั่งนี้บนเครื่องใหม่
+
+| สกิล | ใช้ในขั้น | จำเป็นไหม | แหล่งที่มา |
+|---|---|---|---|
+| `setup-matt-pocock-skills` | 1 | จำเป็น | mattpocock/skills |
+| `grill-with-docs` | 2 | จำเป็น | mattpocock/skills |
+| `to-spec` · `to-tickets` | 4 · 5 | จำเป็น | mattpocock/skills |
+| `implement` · `implement-spec` | 6 | จำเป็น (`implement-spec` เฉพาะที่ขนานหลายใบ) | mattpocock/skills |
+| `tdd` | งานเล็ก · 6 | แนะนำ | mattpocock/skills |
+| `code-review` | 7 | จำเป็น | mattpocock/skills |
+| `diagnosing-bugs` | 8 | แนะนำ | mattpocock/skills |
+| `handoff` · `improve-codebase-architecture` | 8 | แนะนำ | mattpocock/skills |
+| `domain-modeling` · `grilling` | adopt · ขั้นที่ต้องซักถาม | เสริม | mattpocock/skills |
+| `/security-review` | 7 | จำเป็น | มากับ Claude Code (ไม่ใช่ `security-review` ชุดเก่าที่สร้างเอง) |
+| `frontend-design` | 2.5 · 4 | เสริม (ไม่มี ทำขั้นนั้นด้วยพรอมต์แทนได้) | ไม่อยู่ใน mattpocock/skills ยังไม่ได้ระบุแหล่งสาธารณะ |
+| `project-planner` | 0 (งานใหญ่) | เสริม | ไม่อยู่ใน mattpocock/skills ยังไม่ได้ระบุแหล่งสาธารณะ |
+| `run-skill-generator` | 3c | เสริม (ไม่มี ให้ Claude เขียนสกิลยกระบบตามพรอมต์ P3c) | ไม่พบแหล่งสาธารณะ |
+
 - Git, Node.js (ด่านตรวจเขียนด้วย Node) และเครื่องมือของ stack ที่เลือก
 - Docker Desktop ถ้าใช้ docker compose หรือ testcontainers
 
