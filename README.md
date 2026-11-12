@@ -93,7 +93,7 @@ A นำเข้า               สำรวจ → แม่แบบ (ร�
 | ไฟล์ | คืออะไร |
 |---|---|
 | [01-playbook.md](01-playbook.md) | แผนละเอียด: เป้าหมาย สิ่งที่ทำ เกณฑ์ "เสร็จ" และกับดักของแต่ละขั้น พร้อมเช็กลิสต์หน้าเดียว |
-| [skill/](skill/) | สกิล `/kickstart` (`SKILL.md` โหลดทุกครั้ง · `adopt.md`, `repair.md`, `feature-gate.md`, `progress-format.md` อ่านเมื่อถึงโหมดนั้น): หาขั้นปัจจุบันจาก `docs/progress.md` และไฟล์ใน repo · ทำขั้นที่ Claude ทำเองได้ · บอกคำสั่งที่คุณต้องพิมพ์เอง |
+| [skill/](skill/) | สกิล `/kickstart` (`SKILL.md` โหลดทุกครั้ง · `adopt.md`, `repair.md`, `feature-gate.md`, `progress-format.md` อ่านเมื่อถึงโหมดนั้น · `check-skills.mjs` ตรวจสกิลที่ขาดครั้งแรกในโปรเจกต์): หาขั้นปัจจุบันจาก `docs/progress.md` และไฟล์ใน repo · ทำขั้นที่ Claude ทำเองได้ · บอกคำสั่งที่คุณต้องพิมพ์เอง |
 | [02-prompts.md](02-prompts.md) | พรอมต์ P0–P9 และ PA1–PA4 (โปรเจกต์ที่มีอยู่แล้ว) ที่ `/kickstart` อ่านไปทำ (คัดลอกใช้เองได้) |
 | [04-owner-preferences.md](04-owner-preferences.md) | หลักที่ใช้ทุกโปรเจกต์ ไม่ผูก stack (โครงที่องค์กรคุ้นเคย ชื่อ secret วิธีถามและ commit) แก้ให้ตรงกับวิธีทำงานของคุณได้ |
 | [03-project-shapes.md](03-project-shapes.md) | รูปแบบโปรเจกต์ทุกแบบ: โครงเปล่าที่รันได้ · วิธีให้ Claude ดูผลเอง · ด่านตรวจ · หมวดมาตรฐานที่ต้องเก็บ |
