@@ -281,6 +281,7 @@
 | Claude ทำเกิน spec | ชี้กลับไปที่ spec ถ้า spec ไม่ชัด ให้แก้ spec ก่อน |
 | Claude ทำผิดโครง | เพิ่ม architecture test ให้จับได้ ไม่ใช่แค่ตักเตือน |
 | worktree หรือ branch ค้างเยอะ | `git worktree list` แล้วลบตัวที่ merge แล้ว หรือสั่ง Claude ให้ล้าง worktree ที่ merge แล้ว |
+| ลบ image/container/cache ใน Docker บน Windows แล้วดิสก์ C: ไม่ว่างขึ้น | ไฟล์ `docker_data.vhdx` (ใน `%LOCALAPPDATA%\Docker\wsl\disk\`) ไม่หดเอง ทำตามลำดับ: (1) รีสตาร์ท Docker Desktop แล้วรัน `wsl -d docker-desktop -u root -e fstrim -v /mnt/docker-desktop-disk` (ถ้าไม่รีสตาร์ทก่อน มักรายงานว่า trim ได้ 0 B) (2) ปิด Docker Desktop แล้ว `wsl --shutdown` (หยุด WSL ทุกตัวชั่วคราว) (3) เปิด PowerShell แบบผู้ดูแล รัน `diskpart` แล้ว `select vdisk file="<path ของไฟล์>"` · `attach vdisk readonly` · `compact vdisk` · `detach vdisk` (Windows Home ไม่มี `Optimize-VHD`) วัดขนาดไฟล์ก่อนและหลัง · container ที่ไม่ผูก volume เก็บข้อมูลไว้ในตัวมันเอง ลบแล้วหายหมด ตรวจก่อนลบ (ทดสอบบน Windows 11 กับ Docker Desktop แบบ WSL2 เท่านั้น) |
 | คุยยาวแล้ว Claude เริ่มลืม | `/handoff` แล้วเปิด session ใหม่ |
 
 ---
