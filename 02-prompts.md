@@ -311,7 +311,9 @@ commit พร้อม trailer "Ticket: <feature>/<NN>" และแก้ Statu
 หลัง merge ใบไหนแล้ว ลบ worktree ของใบนั้นด้วย git worktree remove (เฉพาะตัวที่ไม่ locked และไม่มีงานที่ยังไม่ commit ห้าม --force)
 และล้าง DB สำเนาของเลขใบนั้นด้วยคำสั่งของสกิล run-<ชื่อโปรเจกต์> ·
 brief ที่เขียนให้ agent ต้องไม่สั่งคำสั่งในรายการ ask · ของที่เจอระหว่างรวมงาน (บั๊ก ช่องว่างใน spec เทสต์ที่ยังไม่พิสูจน์)
-ให้เขียนเป็น ticket ใหม่ใน .scratch/<feature>/issues/ ไม่ยัดเพิ่มเข้า brief ของใบอื่น
+ให้เขียนเป็น ticket ใหม่ใน .scratch/<feature>/issues/ ไม่ยัดเพิ่มเข้า brief ของใบอื่น ·
+ถ้าการสร้าง worktree ถูกปฏิเสธด้วย "Refusing to use … as an isolation worktree" ให้หยุด ห้ามลองซ้ำ ถ้าสอง path ในข้อความต่างกันแค่ตัวพิมพ์ของไดรฟ์ (c: กับ C:)
+เป็นบั๊กของ Claude Code: บอกผมให้เปิด session จาก path ไดรฟ์ตัวใหญ่หรือทำทีละใบด้วย /implement และรายงาน worktree กับ branch ที่ค้างพร้อมคำสั่งลบ ห้ามลบเอง (กำลังลอง · I-027)
 ```
 
 ถ้า agent ถามสิ่งที่ spec ไม่ได้ตอบ:
