@@ -57,6 +57,6 @@
 | 2.5 | (เฉพาะที่มีหน้าจอ) มี ADR ด้านการออกแบบ · `docs/design/screens.md` · `docs/design/prototypes/` ถ้าไม่มี `tokens-preview.html` หรือ token อยู่หลายที่ ให้บันทึกในหัวข้อ "ข้ามหรือเปลี่ยนจากแผน" ไม่ต้องย้อนทำ |
 | 3 | `CHECKS` ใน verify.mjs ไม่ว่าง · **ตารางคำสั่ง** ใน CLAUDE.md ไม่มี `<...>` (ดูเฉพาะตาราง ส่วนอื่นมี `Result<T>` ได้) · มีเทสต์ · (3c ถ้าต้องยกระบบ) มี `.claude/skills/run-*/` |
 | 4 | มี `.scratch/<ฟีเจอร์>/spec.md` |
-| 5 | มี `.scratch/<ฟีเจอร์>/issues/*.md` |
+| 5 | มี `.scratch/<ฟีเจอร์>/issues/*.md` (และ `acceptance.md` ถ้าโปรเจกต์มี `.claude/agents/qa.md` และงานไม่ใช่ขนาดเล็ก) |
 | 6 | ticket ทุกใบเสร็จตามหัวข้อ "สถานะ ticket" ใน `SKILL.md` |
 | 7 | branch ของฟีเจอร์ merge เข้า main แล้ว |

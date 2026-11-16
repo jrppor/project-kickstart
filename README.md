@@ -78,9 +78,9 @@ mkdir -p ~/.claude/skills && ln -s "$PWD/skill" ~/.claude/skills/kickstart
 3 โครงเปล่าที่รันได้      3a ผังโฟลเดอร์ (รออนุมัติ) → 3b walking skeleton + ด่านตรวจ → 3c สกิลยกระบบ  P3a–P3c
 ── วนต่อฟีเจอร์ ─────────────────────────────────────────────────────
 4 สเปก                 คุย → /to-spec                          P4
-5 ticket               /to-tickets (ชิ้นแนวตั้ง + blocked by)     P5
+5 ticket               /to-tickets (ชิ้นแนวตั้ง + blocked by) → QA จังหวะ A (รายการตรวจจาก spec)   P5
 6 ลงมือ                /implement หรือ /implement-spec          P6
-7 รีวิว + merge         /code-review + /security-review + เทสต์ช้า + คนรีวิว   P7
+7 รีวิว + merge         QA จังหวะ B (ลองระบบจริง) → /code-review + /security-review + เทสต์ช้า + คนรีวิว   P7
 8 ดูแล                 /diagnosing-bugs · /improve-codebase-architecture · /handoff   P8–P9
 ── โปรเจกต์ที่มีอยู่แล้ว ──────────────────────────────────────────────
 A นำเข้า               สำรวจ → แม่แบบ (รวมกับของเดิม) → ADR ย้อนหลัง → ด่านตรวจ แล้วเข้า 4   PA1–PA4
@@ -101,6 +101,7 @@ A นำเข้า               สำรวจ → แม่แบบ (ร�
 | [templates/CODING_STANDARDS.md](templates/CODING_STANDARDS.md) | มาตรฐานโค้ดที่ `/code-review` ใช้ตรวจ: ส่วนกลางทุกโปรเจกต์ · หมวดตามส่วนประกอบ (SQL, API, FE, UI, APP, CLI, WORKER, LIB) · ภาคผนวกโดเมน (เงิน ธนาคาร หลักทรัพย์ audit) · ภาคผนวกภาษา (Go, C#, Java, TS/React/Next.js, Angular) |
 | [templates/.claude/settings.json](templates/.claude/settings.json) | กฎอนุญาตล่วงหน้า (แก้ไฟล์ · `git -C <path> status|log|diff|show` ที่ agent ใช้อ่าน worktree อื่น) · กฎห้าม (force push รวมรูปแบบ `+refspec` และ `git -C`, `--no-verify`/`commit -n`, `--output` และ `-c` ของ git ที่กฎอนุญาตเปิดช่องไว้, อ่าน `.env` และ `.env.production`/`.staging`/`.development`/`.*.local`) · กฎที่ต้องถามก่อน (reset --hard, clean, checkout --, worktree remove --force, rm -rf, down -v) · ต่อ hooks `PostToolUse`, `Stop` และ `SubagentStop` |
 | [templates/.claude/hooks/verify.mjs](templates/.claude/hooks/verify.mjs) | ด่านตรวจที่รันเฉพาะส่วนที่เปลี่ยน ก่อนจบเทิร์นของ session หลักและก่อน agent ใน worktree ส่งงาน มี formatter หลังแก้ไฟล์ วัดความยาว CLAUDE.md และ docs/progress.md (เพดาน 8,000 ตัวอักษร เตือนเมื่อเกิน บล็อกเมื่อเกิน 1.5 เท่าและงานนั้นแก้ไฟล์นั้น) และตัวอย่าง `CHECKS` ของ Go, Node, .NET (solution filter), Python, Flutter, สคริปต์ของคลัง และโปรเจกต์ส่วนเดียว |
+| [templates/.claude/agents/qa.md](templates/.claude/agents/qa.md) | agent ตรวจคุณภาพที่ไม่ได้เขียนโค้ดและแก้โค้ดไม่ได้: จังหวะ A (ท้ายขั้น 5) เขียนรายการตรวจจาก spec อย่างเดียว · จังหวะ B (ต้นขั้น 7) ลองระบบจริงตามรายการและพยายามทำให้พัง งานขนาดเล็กไม่ใช้ |
 | [templates/.claude/launch.json](templates/.claude/launch.json) | เฉพาะโปรเจกต์ที่มีหน้าเว็บ: ให้ Claude เปิด dev server และ prototype ใน browser pane เอง ผ่าน `scripts/run.mjs` |
 | [templates/scripts/](templates/scripts/) | `run.mjs` รันทีละส่วนประกอบโดยโหลด secret จาก `.env` และสร้าง secret ของ dev ให้ครั้งแรก · `serve` เปิดไฟล์ HTML นิ่ง · `dev-env.mjs` พร้อมเทสต์ · `verify.test.mjs` เทสต์ของด่าน `verify.mjs` (คัดลอกทุกโปรเจกต์ที่ใช้ด่าน รันด้วย `node --test "scripts/*.test.mjs"` ราว 10 วินาที ใช้พิสูจน์ว่าการแก้ด่านไม่ทำให้กลไกหลักพัง) |
 | [templates/.worktreeinclude](templates/.worktreeinclude) | ไฟล์ที่ git ignore แต่ worktree ของ agent ต้องมี (`.env`) Claude Code คัดลอกให้ตอนสร้าง worktree |
