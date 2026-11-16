@@ -2,11 +2,6 @@
   "permissions": {
     "allow": [
       "Edit(/**)",
-      "Bash(git status*)",
-      "Bash(git log*)",
-      "Bash(git diff*)",
-      "Bash(git show*)",
-      "Bash(git worktree list*)",
       "Bash(git -C * status*)",
       "Bash(git -C * log*)",
       "Bash(git -C * diff*)",
