@@ -45,7 +45,8 @@ brief ต้องตอบครบ 7 ข้อ: ปัญหา · ผู้�
 
 0. ถ้าโฟลเดอร์นี้ยังไม่ใช่ git repo ให้ `git init -b main`
 1. คัดลอก templates/CLAUDE.md, templates/CODING_STANDARDS.md, templates/.claude/settings.json,
-   templates/.claude/hooks/verify.mjs, templates/scripts/verify.test.mjs (เทสต์ของด่าน), templates/.claude/agents/qa.md,
+   templates/.claude/hooks/verify.mjs, templates/scripts/verify.test.mjs (เทสต์ของด่าน), templates/scripts/settings-rules.test.mjs (เทสต์ของกฎห้าม),
+   templates/.claude/agents/qa.md,
    templates/.worktreeinclude และ templates/.gitattributes เข้า repo นี้
    คัดลอก templates/scripts/ ถ้ามีส่วนประกอบที่ต้องรันบนเครื่อง (server, worker, ui) และ templates/.claude/launch.json
    เฉพาะเมื่อ docs/brief.md บอกว่ามีหน้าเว็บ
