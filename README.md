@@ -38,6 +38,7 @@ Claude จะสำรวจแบบอ่านอย่างเดียว�
 | `diagnosing-bugs` | 8 | แนะนำ | mattpocock/skills |
 | `handoff` · `improve-codebase-architecture` | 8 | แนะนำ | mattpocock/skills |
 | `domain-modeling` · `grilling` | adopt · ขั้นที่ต้องซักถาม | เสริม | mattpocock/skills |
+| `retro` · `writing-for-agents` | ท้าย session ที่สะดุด (P9) | เสริม (`retro` เรียก `writing-for-agents` เอง) | mattpocock/skills |
 | `/security-review` | 7 | จำเป็น | มากับ Claude Code (ไม่ใช่ `security-review` ชุดเก่าที่สร้างเอง) |
 | `frontend-design` | 2.5 · 4 | เสริม (ไม่มี ทำขั้นนั้นด้วยพรอมต์แทนได้) | ไม่อยู่ใน mattpocock/skills ยังไม่ได้ระบุแหล่งสาธารณะ |
 | `project-planner` | 0 (งานใหญ่) | เสริม | ไม่อยู่ใน mattpocock/skills ยังไม่ได้ระบุแหล่งสาธารณะ |
