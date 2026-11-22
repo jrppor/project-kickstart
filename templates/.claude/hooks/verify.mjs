@@ -5,6 +5,9 @@
 //   subagent-stop  The same checks when a subagent finishes, but only for one that worked in its own worktree
 //                  (e.g. /implement-spec workers). Stop does not fire for subagents, so without this they are never gated.
 //   format         After an Edit/Write, format the edited file. A formatter error (e.g. a syntax error) goes back to Claude.
+//   session-start  Adds context only when the situation calls for it: the worktree rules (WORKTREE_RULES) when the session
+//                  was opened inside a linked worktree, and a warning when a Windows session path starts with a lowercase drive.
+//   subagent-start The worktree rules for every subagent that may write (not the read-only types in READ_ONLY_AGENTS).
 // A stop also measures CLAUDE.md and docs/progress.md (LENGTH_LIMITED_DOCS): over the limit is a warning to the user that does
 //                  not block; over 1.5x the limit blocks, but only when this run edited that file (an old long file must not block other work).
 // The last green run is kept per worktree in <git-dir>/claude-verify.json, so an unchanged area is not re-checked.
@@ -104,13 +107,39 @@ const LENGTH_LIMITED_DOCS = [
   },
 ];
 
+// กติกาที่ใช้เฉพาะตอนทำงานใน worktree อยู่นอก CLAUDE.md แล้วส่งเข้าบริบทตอนเริ่ม (กำลังลอง · project-kickstart I-037)
+const WORKTREE_RULES = "docs/guides/worktree.md";
+const READ_ONLY_AGENTS = /^(Explore|Plan|claude-code-guide|statusline-setup|web-fetch)$/;
+const LOWERCASE_DRIVE_NOTE =
+  "path ของ session นี้ขึ้นต้นด้วยไดรฟ์ตัวเล็ก (เปิดจากส่วนขยาย VS Code) บน Claude Code บางรุ่น การเรียก agent แบบ isolation: worktree จะถูกปฏิเสธ " +
+  "(Refusing to use … as an isolation worktree) ก่อนเริ่มงานที่ให้ agent ย่อยทำขนานกัน ให้บอกผู้ใช้ว่าควรเปิด session จาก path ที่ขึ้นต้นด้วยไดรฟ์ตัวใหญ่ " +
+  "(แอป Claude หรือ terminal) หรือทำทีละใบ อย่าสร้าง worktree เองแทนโดยไม่ถามผู้ใช้";
+
 const input = parseInput();
 const mode = process.argv[2];
+if (mode === "session-start" || mode === "subagent-start") {
+  startContext();
+  process.exit(0);
+}
 const root = mode === "subagent-stop" ? subagentWorktree() : projectRoot();
 if (!root) process.exit(0); // nothing of this project to check
 
 if (mode === "format") format();
 else if (mode === "stop" || mode === "subagent-stop") stop();
+
+// ส่งข้อความเข้าบริบทเฉพาะเมื่อถึงสถานการณ์ ไม่พิมพ์อะไรเลยเมื่อไม่เข้าเงื่อนไข (session ปกติไม่เสียบริบท)
+function startContext() {
+  const here = input.cwd || process.cwd();
+  const notes = [];
+  if (mode === "session-start" && process.platform === "win32" && /^[a-z]:/.test(here)) notes.push(LOWERCASE_DRIVE_NOTE);
+  const top = toplevel(here) ?? toplevel(process.env.CLAUDE_PROJECT_DIR);
+  const wanted = mode === "subagent-start" ? !READ_ONLY_AGENTS.test(input.agent_type ?? "") : Boolean(top) && isLinkedWorktree(top);
+  const rules = top ? path.join(top, WORKTREE_RULES) : null;
+  if (wanted && rules && existsSync(rules)) notes.push(readFileSync(rules, "utf8").replace(/<!--[\s\S]*?-->\n?/g, "").trim());
+  if (notes.length === 0) return;
+  const hookEventName = mode === "session-start" ? "SessionStart" : "SubagentStart";
+  process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName, additionalContext: notes.join("\n\n") } }));
+}
 
 function parseInput() {
   try {

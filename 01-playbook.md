@@ -192,7 +192,7 @@
 
 **ก่อนสั่งงานขนาน:**
 - พิมพ์ `/implement-spec` เป็นบรรทัดแยกที่ขึ้นต้นด้วย `/` ถ้าอยู่กลางประโยค สกิลจะไม่ทำงาน (เช่น "commit แล้ว /implement-spec" จะไม่เรียกสกิล)
-- `.worktreeinclude` คัดลอก `.env` เข้า worktree ให้เอง ส่วน dependency (เช่น `npm ci`) agent ติดตั้งตามหัวข้อ "เตรียม worktree" ใน CLAUDE.md
+- `.worktreeinclude` คัดลอก `.env` เข้า worktree ให้เอง ส่วน dependency (เช่น `npm ci`) agent ติดตั้งตาม `docs/guides/worktree.md`
 - เทสต์ช้าที่ใช้ DB หรือ Redis ร่วมกันห้ามรันพร้อมกันหลาย worktree ถ้ายังไม่ได้แยกชื่อ DB ต่อ worktree
 - ไฟล์ที่ generate (สัญญา API, type ที่สร้างจากสัญญา) ให้ผู้ merge สร้างใหม่หลัง merge แต่ละใบ ไม่ต้องแก้ conflict ทีละบรรทัด
 - ผู้ merge ลบ worktree ของใบทันทีที่ใบนั้น merge เข้า integration branch แล้ว (`git worktree remove` เฉพาะตัวที่ไม่ `locked` และไม่มีงานค้าง) พร้อมล้างฐานข้อมูลสำเนาของเลขใบนั้นด้วยคำสั่งของสกิล `run-*` ไม่รอขั้น 7 (กำลังลอง · I-022)

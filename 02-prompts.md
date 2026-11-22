@@ -47,7 +47,7 @@ brief ต้องตอบครบ 7 ข้อ: ปัญหา · ผู้�
 1. คัดลอก templates/CLAUDE.md, templates/CODING_STANDARDS.md, templates/.claude/settings.json,
    templates/.claude/hooks/verify.mjs, templates/scripts/verify.test.mjs (เทสต์ของด่าน), templates/scripts/settings-rules.test.mjs (เทสต์ของกฎห้าม),
    templates/.claude/agents/qa.md,
-   templates/.worktreeinclude และ templates/.gitattributes เข้า repo นี้
+   templates/docs/guides/worktree.md, templates/.worktreeinclude และ templates/.gitattributes เข้า repo นี้
    คัดลอก templates/scripts/ ถ้ามีส่วนประกอบที่ต้องรันบนเครื่อง (server, worker, ui) และ templates/.claude/launch.json
    เฉพาะเมื่อ docs/brief.md บอกว่ามีหน้าเว็บ
    ถ้าระบบไม่ให้เขียน .claude/settings.json ห้ามหาทางอ้อม ให้เขียนไว้ที่ .scratch/settings.proposed.json
@@ -186,7 +186,7 @@ ADR ทุกฉบับมีบรรทัด Status: และวันท�
    ต้องได้ exit 2 จากนั้นลบ error ออกแล้วรันใหม่ต้องได้ exit 0 รายงานผลทั้งสองรอบ แล้วลบไฟล์ชั่วคราวที่ใช้พิสูจน์
 7. ถ้ามีหน้าจอ: ตั้ง theme จาก docs/design/tokens.css ตาม ADR ด้านการออกแบบ (ไม่ hardcode สีหรือขนาด) ใส่ฟอนต์ไทย
    และทำหน้าแรกให้ตรงกับ prototype ใน docs/design/prototypes/
-8. เติมหัวข้อ "เตรียม worktree" ใน CLAUDE.md ด้วยคำสั่งติดตั้ง dependency ของแต่ละส่วนประกอบ และตรวจว่า .worktreeinclude
+8. เติม docs/guides/worktree.md (กติกาเมื่อทำงานใน worktree · hook ส่งให้ agent เอง) ด้วยคำสั่งติดตั้ง dependency ของแต่ละส่วนประกอบ และตรวจว่า .worktreeinclude
    มีไฟล์ secret ที่ต้องใช้ครบ
 9. ลองเส้นทางบางนั้นจริงด้วยวิธีของรูปแบบนี้ แล้วแสดงผลให้ผมดู (หน้าเว็บ, response, output ของคำสั่ง, ภาพหน้าจอแอป)
 10. ก่อนย้ายหรือเปลี่ยนชื่อโฟลเดอร์ใดๆ ให้หยุด dev server และ build server ที่คุณเปิดไว้ก่อน (ไฟล์ถูกล็อก)
@@ -299,7 +299,7 @@ description เขียนเป็นบุรุษที่สาม บอ�
 ส่งต่อทันทีหลังสกิลเริ่ม (หรือพิมพ์ต่อท้ายบรรทัดเดียวกัน):
 
 ```text
-กติกาสำหรับ agent ทุกตัว: เตรียม worktree ตามหัวข้อ "เตรียม worktree" ใน CLAUDE.md ก่อนเริ่ม ·
+กติกาสำหรับ agent ทุกตัว: เตรียม worktree ตาม docs/guides/worktree.md ก่อนเริ่ม (โปรเจกต์เก่า: หัวข้อ "เตรียม worktree" ใน CLAUDE.md) ·
 เขียนไฟล์ด้วย Write/Edit ไม่ใช้ heredoc หรือคำสั่งต่อกันหลายตัวใน Bash · ใช้พอร์ตของตัวเอง ห้าม kill process ตามพอร์ต ·
 ห้ามรันเทสต์ที่ใช้ DB/Redis ร่วมกันพร้อม agent อื่น ถ้ายังไม่ได้แยกชื่อ DB ต่อ worktree ·
 ลองด้วยมือหรือบนเบราว์เซอร์ด้วย DB ของตัวเอง ห้ามสร้างข้อมูลทดสอบใน DB ของ dev ·
@@ -450,7 +450,7 @@ CHECKS ที่จะใส่ และคำถามที่ผมต้อ
    แล้วบอกคำสั่ง mv ให้ผมรันเอง
    - scripts/ คัดลอกเฉพาะเมื่อ repo ยังไม่มีวิธีรันบนเครื่องที่ใช้ได้ (มี docker compose, Makefile หรือสคริปต์อยู่แล้ว = ไม่ต้อง)
    - .claude/launch.json เฉพาะเมื่อมีหน้าเว็บของตัวเอง
-2. CLAUDE.md: ตารางคำสั่งเฉพาะคำสั่งที่รันผ่านจริงใน PA1 · วิธีดูผลงานจริง · หัวข้อ "ลำดับงาน" และ "เตรียม worktree"
+2. CLAUDE.md: ตารางคำสั่งเฉพาะคำสั่งที่รันผ่านจริงใน PA1 · วิธีดูผลงานจริง · หัวข้อ "ลำดับงาน" และไฟล์ docs/guides/worktree.md
    กฎที่มีอยู่แล้วในเอกสารอื่น (README, PLAN) ให้ลิงก์ไป ไม่คัดลอกซ้ำ ใส่เฉพาะสิ่งที่ Claude เดาเองไม่ได้และยังไม่มีที่ไหนเขียน
 3. brief: ถ้ามีเอกสารที่ทำหน้าที่นี้อยู่แล้ว ให้ docs/brief.md เป็นหน้าเดียวสั้นๆ ที่บอกรูปแบบโปรเจกต์และชี้ไปที่เอกสารนั้น
    ถ้าไม่มี เขียนครึ่งหน้าจาก README และโค้ด (ระบบทำอะไร ใครใช้ ช่องทางไหน) ให้ผมแก้
@@ -525,7 +525,7 @@ CHECKS ที่จะใส่ และคำถามที่ผมต้อ
 
 ```text
 CLAUDE.md เกินเพดาน ย้ายรายละเอียดเฉพาะเรื่องไป docs/guides/<เรื่อง>.md ด้วยการตัดมาทั้งก้อน ห้ามเขียนสรุปใหม่หรือลบทิ้ง
-คงไว้ใน CLAUDE.md เฉพาะ: ภาพรวม ตารางคำสั่ง กฎที่พลาดได้ทุกงาน เตรียม worktree และลำดับงาน
+คงไว้ใน CLAUDE.md เฉพาะ: ภาพรวม ตารางคำสั่ง กฎที่พลาดได้ทุกงาน และลำดับงาน (กติกา worktree อยู่ที่ docs/guides/worktree.md)
 เพิ่มแถวในตาราง "ก่อนแตะเรื่องไหน อ่านอะไร" ช่องแรกใส่ชื่อกลไกที่คนจะค้น (class, hook, ตาราง, endpoint)
 พิสูจน์: (1) ข้อความใน backtick ของไฟล์เดิมทุกชุดยังหาเจอในไฟล์ใหม่ (2) ให้ agent ใหม่ตอบ 5 คำถามเรื่องที่ย้ายไป
 โดยเริ่มจาก CLAUDE.md ต้องถึงคำตอบในไม่เกิน 2 ก้าว ข้อที่ไม่ถึงให้แก้ตารางชี้ทาง

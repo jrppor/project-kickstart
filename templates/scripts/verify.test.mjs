@@ -91,3 +91,44 @@ test('a hanging check is cut at the timeout and its child process is killed too'
   assert.equal(existsSync(join(dir, 'alive.txt')), false);
   done(dir);
 });
+
+function gitIn(dir, ...args) {
+  return spawnSync('git', ['-C', dir, '-c', 'user.email=t@t', '-c', 'user.name=t', ...args], { encoding: 'utf8' });
+}
+
+test('subagent-start hands the worktree rules to agents that may write, and nothing to read-only ones', () => {
+  const dir = repo();
+  mkdirSync(join(dir, 'docs', 'guides'), { recursive: true });
+  writeFileSync(join(dir, 'docs', 'guides', 'worktree.md'), '# rules\n<!-- note for people -->\n- use your own port\n');
+  const writer = run(dir, 'subagent-start', { cwd: dir, agent_type: 'general-purpose' });
+  assert.equal(writer.status, 0);
+  const context = JSON.parse(writer.out).hookSpecificOutput;
+  assert.equal(context.hookEventName, 'SubagentStart');
+  assert.match(context.additionalContext, /use your own port/);
+  assert.doesNotMatch(context.additionalContext, /note for people/);
+  assert.equal(run(dir, 'subagent-start', { cwd: dir, agent_type: 'Explore' }).out, '');
+  done(dir);
+});
+
+test('session-start is silent in the main checkout and hands the rules to a session opened in a linked worktree', () => {
+  const dir = repo();
+  mkdirSync(join(dir, 'docs', 'guides'), { recursive: true });
+  writeFileSync(join(dir, 'docs', 'guides', 'worktree.md'), '- use your own port\n');
+  gitIn(dir, 'add', 'docs'); gitIn(dir, 'commit', '-q', '-m', 'rules');
+  const upper = dir.replace(/^[a-z]:/, (d) => d.toUpperCase());
+  assert.equal(run(dir, 'session-start', { cwd: upper }).out, '');
+  const tree = join(dir, 'wt');
+  gitIn(dir, 'worktree', 'add', '-q', '-b', 't01', tree);
+  const inTree = run(dir, 'session-start', { cwd: tree.replace(/^[a-z]:/, (d) => d.toUpperCase()) });
+  assert.match(JSON.parse(inTree.out).hookSpecificOutput.additionalContext, /use your own port/);
+  gitIn(dir, 'worktree', 'remove', '--force', tree);
+  done(dir);
+});
+
+test('session-start warns about a lowercase drive letter on Windows only', { skip: process.platform !== 'win32' }, () => {
+  const dir = repo();
+  const lower = dir.replace(/^[A-Za-z]:/, (d) => d.toLowerCase());
+  const out = run(dir, 'session-start', { cwd: lower }).out;
+  assert.match(JSON.parse(out).hookSpecificOutput.additionalContext, /isolation: worktree/);
+  done(dir);
+});
