@@ -107,7 +107,7 @@ const LENGTH_LIMITED_DOCS = [
   },
 ];
 
-// กติกาที่ใช้เฉพาะตอนทำงานใน worktree อยู่นอก CLAUDE.md แล้วส่งเข้าบริบทตอนเริ่ม (กำลังลอง · project-kickstart I-037)
+// กติกาที่ใช้เฉพาะตอนทำงานใน worktree อยู่นอก CLAUDE.md แล้วส่งเข้าบริบทตอนเริ่ม (project-kickstart I-037)
 const WORKTREE_RULES = "docs/guides/worktree.md";
 const READ_ONLY_AGENTS = /^(Explore|Plan|claude-code-guide|statusline-setup|web-fetch)$/;
 const LOWERCASE_DRIVE_NOTE =
