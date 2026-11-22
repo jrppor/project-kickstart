@@ -1,10 +1,11 @@
 // เทสต์ของ scripts/dev-env.mjs รันด้วย `node --test "scripts/*.test.mjs"` (Node 22+ ไม่รับชื่อโฟลเดอร์อย่างเดียว)
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { ensureSecrets, parseDotEnv } from './dev-env.mjs';
+import { ensureSecrets, missingWorktreeEnv, parseDotEnv } from './dev-env.mjs';
 
 function envFile(content) {
   const file = join(mkdtempSync(join(tmpdir(), 'dev-env-')), '.env');
@@ -45,4 +46,18 @@ test('fills a blank line in place in a CRLF file', () => {
   const text = readFileSync(file, 'utf8');
   assert.equal(text.match(/APP_KEY=/g).length, 1);
   assert.ok(text.endsWith('APP_OTHER=kept\r\n'));
+});
+
+test('worktree guard: names the unset values only inside a linked worktree', () => {
+  const main = mkdtempSync(join(tmpdir(), 'wt-guard-'));
+  const git = (...args) => execFileSync('git', ['-C', main, '-c', 'user.email=t@t', '-c', 'user.name=t', ...args], { encoding: 'utf8' });
+  git('init', '-q', '-b', 'main');
+  git('commit', '-q', '--allow-empty', '-m', 'init');
+  const tree = join(main, 'wt');
+  git('worktree', 'add', '-q', '-b', 't01', tree);
+  const required = ['COMPOSE_PROJECT_NAME', 'DB_NAME'];
+  assert.deepEqual(missingWorktreeEnv(main, required, {}), [], 'main checkout is the dev checkout');
+  assert.deepEqual(missingWorktreeEnv(tree, required, { DB_NAME: 'app_t01' }), ['COMPOSE_PROJECT_NAME']);
+  assert.deepEqual(missingWorktreeEnv(tree, required, { COMPOSE_PROJECT_NAME: 'app_t01', DB_NAME: 'app_t01' }), []);
+  assert.deepEqual(missingWorktreeEnv(tree, [], {}), [], 'no list = no guard');
 });

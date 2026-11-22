@@ -4,14 +4,14 @@
 //   node scripts/run.mjs <ส่วนประกอบ>          ตาม COMPONENTS ด้านล่าง
 //   node scripts/run.mjs serve <โฟลเดอร์> <พอร์ต>  เปิดไฟล์ HTML นิ่ง เช่น prototype หรือ mockup (ใช้ใน launch.json แทน python)
 //
-// แก้เฉพาะ COMPONENTS, GENERATED_SECRETS และ toAppEnv ให้ตรงโปรเจกต์ ใช้ใน launch.json และใน README
+// แก้เฉพาะ COMPONENTS, GENERATED_SECRETS, WORKTREE_ENV และ toAppEnv ให้ตรงโปรเจกต์ ใช้ใน launch.json และใน README
 
 import { spawn } from 'node:child_process';
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { dirname, extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ensureSecrets, parseDotEnv } from './dev-env.mjs';
+import { ensureSecrets, missingWorktreeEnv, parseDotEnv } from './dev-env.mjs';
 
 // ส่วนประกอบ → [คำสั่ง, argument] ตัวอย่าง (ลบที่ไม่ใช้):
 const COMPONENTS = {
@@ -25,6 +25,9 @@ const COMPONENTS = {
 const GENERATED_SECRETS = [
   // 'APP_AUTH_SIGNING_KEY',
 ];
+
+// ค่าที่ต้องตั้งเองเมื่อรันจาก worktree ไม่อย่างนั้นจะตกไปใช้ของ dev เช่น ['COMPOSE_PROJECT_NAME', 'DB_NAME'] (กำลังลอง · I-035)
+const WORKTREE_ENV = [];
 
 // แปลงชื่อใน .env เป็นชื่อที่แอปอ่าน เช่น .NET ใช้ __ แทนระดับของ config
 function toAppEnv(env) {
@@ -45,6 +48,11 @@ else run(target);
 function run(name) {
   if (!COMPONENTS[name]) {
     console.error(`ใช้: node scripts/run.mjs <${Object.keys(COMPONENTS).join('|')}> หรือ serve <โฟลเดอร์> <พอร์ต>`);
+    process.exit(1);
+  }
+  const missing = missingWorktreeEnv(root, WORKTREE_ENV);
+  if (missing.length > 0) {
+    console.error(`รันจาก worktree แต่ยังไม่ได้ตั้ง ${missing.join(' ')} คำสั่งนี้จะใช้ของ dev จึงไม่รัน ตั้งค่าของใบงานแล้วรันใหม่`);
     process.exit(1);
   }
   const dotEnv = join(root, '.env');

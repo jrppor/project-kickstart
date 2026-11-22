@@ -1,7 +1,9 @@
 // ไฟล์ environment ของเครื่อง dev (.env ที่รากคลัง ไม่เข้า git): อ่านค่า และสร้าง secret ที่ยังไม่มีให้ครั้งแรก
 
+import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
+import { resolve } from 'node:path';
 
 export function parseDotEnv(text) {
   const values = {};
@@ -35,4 +37,19 @@ export function ensureSecrets(file, names) {
   }
   if (created.length > 0) writeFileSync(file, text);
   return created;
+}
+
+/**
+ * ตัวกันของ dev (กำลังลอง · I-035): คืนชื่อใน required ที่ยังไม่ได้ตั้ง เมื่อ cwd อยู่ใน worktree ที่ git สร้าง (ไม่ใช่โฟลเดอร์หลัก)
+ * อ่านจาก environment ของคำสั่งเท่านั้น ไม่นับ .env เพราะ .env ของ worktree คัดลอกมาจาก dev ค่าที่ลืมตั้งจึงตกไปเป็นของ dev
+ * สคริปต์ที่ยก container หรือแตะฐานต้องเรียกก่อนทำงาน และหยุดเมื่อคืนรายชื่อ
+ */
+export function missingWorktreeEnv(cwd, required, env = process.env) {
+  if (required.length === 0) return [];
+  const git = (flag) => spawnSync('git', ['rev-parse', flag], { cwd, encoding: 'utf8' });
+  const dir = git('--git-dir');
+  const common = git('--git-common-dir');
+  if (dir.status !== 0 || common.status !== 0) return [];
+  if (resolve(cwd, dir.stdout.trim()) === resolve(cwd, common.stdout.trim())) return [];
+  return required.filter((name) => !env[name]);
 }
