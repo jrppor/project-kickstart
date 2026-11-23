@@ -157,7 +157,7 @@ function commitGate() {
 }
 
 // PreToolUse ของเครื่องมือ Agent: บน Windows ที่ path ของ session ขึ้นต้นด้วยไดรฟ์ตัวเล็ก Claude Code บางรุ่นปฏิเสธ isolation: worktree
-// ทุกครั้งและทิ้ง worktree ที่ locked ไว้ จึงปฏิเสธการเรียกนั้นก่อนสร้าง (กำลังลอง · project-kickstart I-045 · ถอดออกเมื่อ Claude Code แก้ ดู I-027)
+// ทุกครั้งและทิ้ง worktree ที่ locked ไว้ จึงปฏิเสธการเรียกนั้นก่อนสร้าง (project-kickstart I-045 · ถอดออกเมื่อ Claude Code แก้ ดู I-027)
 // ตั้ง KICKSTART_ISOLATION_OK=1 ใน environment เพื่อข้ามเมื่อรุ่นที่ใช้แก้แล้ว
 function isolationGuard() {
   if (input.tool_input?.isolation !== "worktree" || process.env.KICKSTART_ISOLATION_OK === "1") return;
