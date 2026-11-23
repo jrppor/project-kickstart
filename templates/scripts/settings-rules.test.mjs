@@ -46,12 +46,21 @@ const MUST_ASK = [
   "docker compose -p wt01 down --volumes",
   "git checkout -- a.txt",
   "git -C .claude/worktrees/ticket-01 checkout -- a.txt",
+  "git -C .claude/worktrees/ticket-01 reset --hard",
+  "git -C .claude/worktrees/ticket-01 clean -fd",
+  "git -C . branch -D ticket-01",
+  "git -C .claude/worktrees/ticket-01 restore a.txt",
+  "git -C . stash drop",
+  "git -C . worktree remove --force .claude/worktrees/ticket-01",
   "rm -rf build",
 ];
-// คำสั่งปกติที่หน้าตาใกล้กัน ต้องไม่ถูกถาม
+// คำสั่งปกติที่หน้าตาใกล้กัน ต้องไม่ถูกถาม (รู้อยู่แล้วและคงไว้: git -C <path> commit ที่ข้อความมีคำว่า restore หรือ reset --hard ถูกถามด้วย)
 const MUST_NOT_ASK = [
   "docker compose -p wt01 down",
   "git checkout -b feature-x",
+  "git -C .claude/worktrees/ticket-01 status --short",
+  "git -C . branch -d ticket-01",
+  'git -C .claude/worktrees/ticket-01 commit -m "fix: clean up unused imports"',
   'git commit -m "docs: docker compose -p x down -v explained"',
 ];
 for (const cmd of MUST_ASK) test(`ถูกถามก่อน: ${cmd}`, () => assert.notEqual(askHits(cmd).length, 0));
