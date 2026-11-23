@@ -13,6 +13,8 @@ const deny = JSON.parse(readFileSync(file, "utf8")).permissions?.deny ?? [];
 const bashDeny = deny.filter((r) => r.startsWith("Bash(") && r.endsWith(")")).map((r) => r.slice(5, -1));
 const toRegex = (p) => new RegExp("^" + p.split("*").map((s) => s.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join(".*") + "$", "s");
 const hits = (cmd) => bashDeny.filter((p) => toRegex(p).test(cmd));
+const bashAsk = (JSON.parse(readFileSync(file, "utf8")).permissions?.ask ?? []).filter((r) => r.startsWith("Bash(") && r.endsWith(")")).map((r) => r.slice(5, -1));
+const askHits = (cmd) => bashAsk.filter((p) => toRegex(p).test(cmd));
 
 // คำสั่งที่ขั้น 5 ถึง 7 ใช้จริง ต้องไม่ชนกฎห้ามข้อใด
 const MUST_PASS = [
@@ -36,3 +38,21 @@ const MUST_BLOCK = [
 
 for (const cmd of MUST_PASS) test(`ไม่ถูกห้าม: ${cmd}`, () => assert.deepEqual(hits(cmd), []));
 for (const cmd of MUST_BLOCK) test(`ถูกห้าม: ${cmd}`, () => assert.notEqual(hits(cmd).length, 0));
+
+// คำสั่งทำลายข้อมูลต้องถูกถามก่อน รวมรูปที่มีตัวเลือกคั่นกลาง (กฎ ask จับรูปตรงตัว รูปที่ไม่ตรงจะรันโดยไม่ถาม · กำลังลอง · I-040)
+const MUST_ASK = [
+  "docker compose down -v",
+  "docker compose -p wt01 down -v",
+  "docker compose -p wt01 down --volumes",
+  "git checkout -- a.txt",
+  "git -C .claude/worktrees/ticket-01 checkout -- a.txt",
+  "rm -rf build",
+];
+// คำสั่งปกติที่หน้าตาใกล้กัน ต้องไม่ถูกถาม
+const MUST_NOT_ASK = [
+  "docker compose -p wt01 down",
+  "git checkout -b feature-x",
+  'git commit -m "docs: docker compose -p x down -v explained"',
+];
+for (const cmd of MUST_ASK) test(`ถูกถามก่อน: ${cmd}`, () => assert.notEqual(askHits(cmd).length, 0));
+for (const cmd of MUST_NOT_ASK) test(`ไม่ถูกถาม: ${cmd}`, () => assert.deepEqual(askHits(cmd), []));

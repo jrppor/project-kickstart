@@ -61,3 +61,15 @@ test('worktree guard: names the unset values only inside a linked worktree', () 
   assert.deepEqual(missingWorktreeEnv(tree, required, { COMPOSE_PROJECT_NAME: 'app_t01', DB_NAME: 'app_t01' }), []);
   assert.deepEqual(missingWorktreeEnv(tree, [], {}), [], 'no list = no guard');
 });
+
+test('a linked worktree without .env takes the main checkout\'s secrets instead of generating new ones', () => {
+  const main = mkdtempSync(join(tmpdir(), 'wt-env-'));
+  const git = (...args) => execFileSync('git', ['-C', main, '-c', 'user.email=t@t', '-c', 'user.name=t', ...args], { encoding: 'utf8' });
+  git('init', '-q', '-b', 'main');
+  git('commit', '-q', '--allow-empty', '-m', 'init');
+  writeFileSync(join(main, '.env'), 'APP_KEY=from-main\n');
+  const tree = join(main, 'wt');
+  git('worktree', 'add', '-q', '-b', 't01', tree);
+  assert.deepEqual(ensureSecrets(join(tree, '.env'), ['APP_KEY']), []);
+  assert.equal(parseDotEnv(readFileSync(join(tree, '.env'), 'utf8')).APP_KEY, 'from-main');
+});

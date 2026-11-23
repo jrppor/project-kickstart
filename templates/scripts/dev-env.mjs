@@ -1,9 +1,9 @@
 // ไฟล์ environment ของเครื่อง dev (.env ที่รากคลัง ไม่เข้า git): อ่านค่า และสร้าง secret ที่ยังไม่มีให้ครั้งแรก
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
-import { resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 
 export function parseDotEnv(text) {
   const values = {};
@@ -21,11 +21,26 @@ function unquote(raw) {
   return raw.replace(/\s+#.*$/, '');
 }
 
+// worktree ที่สร้างด้วย git worktree add ไม่มี .env (ไฟล์ไม่เข้า git และ .worktreeinclude ทำงานเฉพาะ worktree ที่ Claude Code สร้าง)
+// ถ้าปล่อยให้สร้างค่าลับใหม่ จะไม่ตรงกับของโฟลเดอร์หลักที่ container ใช้อยู่ จึงคัดลอกไฟล์ของโฟลเดอร์หลักมาก่อน (กำลังลอง · I-038)
+function seedFromMainCheckout(file) {
+  const dir = dirname(file);
+  if (existsSync(file) || !existsSync(dir)) return;
+  const git = (flag) => spawnSync('git', ['rev-parse', flag], { cwd: dir, encoding: 'utf8' });
+  const [own, common, top] = [git('--git-dir'), git('--git-common-dir'), git('--show-toplevel')];
+  if (own.status !== 0 || common.status !== 0 || top.status !== 0) return;
+  const commonDir = resolve(dir, common.stdout.trim());
+  if (resolve(dir, own.stdout.trim()) === commonDir) return; // โฟลเดอร์หลักเอง
+  const source = join(dirname(commonDir), relative(resolve(top.stdout.trim()), resolve(file)));
+  if (existsSync(source)) copyFileSync(source, file);
+}
+
 /**
  * ใส่ค่าสุ่ม 48 ไบต์ให้ทุกชื่อใน names ที่ยังไม่มีหรือค่าว่าง แล้วคืนรายชื่อที่สร้าง
  * ค่าที่มีอยู่แล้วไม่แตะต้อง เพราะ secret เปลี่ยน = token หรือข้อมูลที่เข้ารหัสไว้แล้วใช้ไม่ได้
  */
 export function ensureSecrets(file, names) {
+  seedFromMainCheckout(file);
   let text = existsSync(file) ? readFileSync(file, 'utf8') : '';
   const existing = parseDotEnv(text);
   const created = names.filter((name) => !existing[name]);

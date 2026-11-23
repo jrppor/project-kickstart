@@ -2,7 +2,7 @@
 
 <!-- ไฟล์นี้ hook ส่งเข้าบริบทให้เองตอนเริ่ม agent ย่อย และตอนเริ่ม session ที่เปิดใน worktree (`.claude/hooks/verify.mjs`)
      จึงไม่ต้องอยู่ใน CLAUDE.md เขียนให้สั้น เติมในขั้นที่ 3 ด้วยคำสั่งที่รันผ่านจริง -->
-- `.env` ถูกคัดลอกมาให้แล้วผ่าน `.worktreeinclude` ไม่ต้องสร้างใหม่ และอ่านไม่ได้ (กฎ deny) ชื่อตัวแปรดูจาก `.env.example`
+- `.env` ไม่ต้องสร้างเอง: worktree ที่ Claude Code สร้างได้สำเนาผ่าน `.worktreeinclude` ส่วน worktree จาก `git worktree add` สคริปต์ใน `scripts/` คัดลอกจากโฟลเดอร์หลักให้ตอนรันครั้งแรก · อ่านไม่ได้ (กฎ deny) ชื่อตัวแปรดูจาก `.env.example`
 - ติดตั้ง dependency ก่อนเริ่มงาน: `<เช่น npm --prefix ui ci>`
 - ใช้พอร์ตของตัวเอง ห้าม kill process ตามพอร์ต (อาจเป็นของ agent อื่นหรือของผู้ใช้)
 - เทสต์ช้าที่ใช้ DB/Redis: `<ตั้งชื่อ DB ของเทสต์ต่อ worktree อย่างไร · "แยกให้เองแล้ว (testcontainers)" · หรือ "ห้ามรันพร้อม agent อื่น">`
