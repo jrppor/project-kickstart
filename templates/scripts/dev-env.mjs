@@ -22,7 +22,7 @@ function unquote(raw) {
 }
 
 // worktree ที่สร้างด้วย git worktree add ไม่มี .env (ไฟล์ไม่เข้า git และ .worktreeinclude ทำงานเฉพาะ worktree ที่ Claude Code สร้าง)
-// ถ้าปล่อยให้สร้างค่าลับใหม่ จะไม่ตรงกับของโฟลเดอร์หลักที่ container ใช้อยู่ จึงคัดลอกไฟล์ของโฟลเดอร์หลักมาก่อน (กำลังลอง · I-038)
+// ถ้าปล่อยให้สร้างค่าลับใหม่ จะไม่ตรงกับของโฟลเดอร์หลักที่ container ใช้อยู่ จึงคัดลอกไฟล์ของโฟลเดอร์หลักมาก่อน (project-kickstart I-038)
 function seedFromMainCheckout(file) {
   const dir = dirname(file);
   if (existsSync(file) || !existsSync(dir)) return;

@@ -39,7 +39,7 @@ const MUST_BLOCK = [
 for (const cmd of MUST_PASS) test(`ไม่ถูกห้าม: ${cmd}`, () => assert.deepEqual(hits(cmd), []));
 for (const cmd of MUST_BLOCK) test(`ถูกห้าม: ${cmd}`, () => assert.notEqual(hits(cmd).length, 0));
 
-// คำสั่งทำลายข้อมูลต้องถูกถามก่อน รวมรูปที่มีตัวเลือกคั่นกลาง (กฎ ask จับรูปตรงตัว รูปที่ไม่ตรงจะรันโดยไม่ถาม · กำลังลอง · I-040)
+// คำสั่งทำลายข้อมูลต้องถูกถามก่อน รวมรูปที่มีตัวเลือกคั่นกลาง (กฎ ask จับรูปตรงตัว รูปที่ไม่ตรงจะรันโดยไม่ถาม)
 const MUST_ASK = [
   "docker compose down -v",
   "docker compose -p wt01 down -v",
