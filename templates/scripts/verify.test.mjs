@@ -79,18 +79,19 @@ test('a formatter that is not installed is skipped with a warning, never blocks'
 });
 
 test('a hanging check is cut at the timeout and its child process is killed too', () => {
-  // the child writes alive.txt after 8s; if the whole process tree was killed at 1s the file never appears
-  // 8s, not 3s: taskkill /T itself takes 2-4s on a busy Windows machine, and a margin shorter than that lets the child write
-  // the file before it is killed, which made this test fail at random (I-044)
-  const dir = repo({ checks: check('hang', '/a\\.txt$/', `node -e "setTimeout(()=>require('fs').writeFileSync('alive.txt','x'),8000)"`) });
+  // the child rewrites alive.txt every 100ms. The gate returns only after taskkill/kill finished, so a dead process tree leaves the
+  // file as it was; a surviving child keeps changing it. Nothing here depends on how fast the machine is: the earlier version let
+  // the child write once after 3s, which failed at random because taskkill /T takes 2-4s on a busy Windows machine (I-044)
+  const dir = repo({ checks: check('hang', '/a\\.txt$/', `node -e "setInterval(()=>require('fs').writeFileSync('alive.txt',String(Date.now())),100)"`) });
   writeFileSync(join(dir, 'a.txt'), 'x');
-  const started = Date.now();
   const r = run(dir, 'stop');
   assert.equal(r.status, 2);
   assert.match(r.err, /เกิน 1 วินาที/);
-  assert.ok(Date.now() - started < 15000);
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 8500);
-  assert.equal(existsSync(join(dir, 'alive.txt')), false);
+  const alive = join(dir, 'alive.txt');
+  const beat = () => (existsSync(alive) ? readFileSync(alive, 'utf8') : null);
+  const first = beat();
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2000);
+  assert.equal(beat(), first, 'the hanging check\'s child process is still writing after the gate returned');
   done(dir);
 });
 
