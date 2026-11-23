@@ -134,7 +134,7 @@ else if (mode === "commit") commitGate();
 else if (mode === "stop" || mode === "subagent-stop") stop();
 
 // ก่อน git commit (PreToolUse): ไม่รันเช็กซ้ำ แค่ดูว่าส่วนที่มีไฟล์เปลี่ยนมีผลเขียวล่าสุดตรงกับไฟล์ตอนนี้หรือไม่ ไม่ตรง = บล็อก
-// ด่านรันตอนจบเทิร์น แต่ commit ระหว่างเทิร์นไม่มีอะไรกั้น (กำลังลอง · project-kickstart I-043)
+// ด่านรันตอนจบเทิร์น แต่ commit ระหว่างเทิร์นไม่มีอะไรกั้น (project-kickstart I-043)
 function commitGate() {
   const gitDir = gitText(root, "rev-parse", "--absolute-git-dir");
   const stamp = readJson(path.join(gitDir, "claude-verify.json"));
