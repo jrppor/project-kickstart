@@ -79,16 +79,46 @@ test('a formatter that is not installed is skipped with a warning, never blocks'
 });
 
 test('a hanging check is cut at the timeout and its child process is killed too', () => {
-  // the child writes alive.txt after 3s; if the whole process tree was killed at 1s the file never appears
-  const dir = repo({ checks: check('hang', '/a\\.txt$/', `node -e "setTimeout(()=>require('fs').writeFileSync('alive.txt','x'),3000)"`) });
+  // the child writes alive.txt after 8s; if the whole process tree was killed at 1s the file never appears
+  // 8s, not 3s: taskkill /T itself takes 2-4s on a busy Windows machine, and a margin shorter than that lets the child write
+  // the file before it is killed, which made this test fail at random (I-044)
+  const dir = repo({ checks: check('hang', '/a\\.txt$/', `node -e "setTimeout(()=>require('fs').writeFileSync('alive.txt','x'),8000)"`) });
   writeFileSync(join(dir, 'a.txt'), 'x');
   const started = Date.now();
   const r = run(dir, 'stop');
   assert.equal(r.status, 2);
   assert.match(r.err, /เกิน 1 วินาที/);
-  assert.ok(Date.now() - started < 8000);
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 3500);
+  assert.ok(Date.now() - started < 15000);
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 8500);
   assert.equal(existsSync(join(dir, 'alive.txt')), false);
+  done(dir);
+});
+
+const commitCmd = (command = 'git commit -m "x"') => ({ tool_name: 'Bash', tool_input: { command } });
+
+test('commit mode blocks a git commit until the gate is green for the changed files, and passes after', () => {
+  const dir = repo({ checks: check('app', '/a\\.txt$/', 'node -e 0') });
+  writeFileSync(join(dir, 'a.txt'), 'x');
+  const blocked = run(dir, 'commit', commitCmd());
+  assert.equal(blocked.status, 2);
+  assert.match(blocked.err, /app/);
+  assert.match(blocked.err, /verify\.mjs stop/);
+  assert.equal(run(dir, 'stop').status, 0);
+  assert.equal(run(dir, 'commit', commitCmd()).status, 0);
+  writeFileSync(join(dir, 'a.txt'), 'changed after the green run');
+  assert.equal(run(dir, 'commit', commitCmd()).status, 2);
+  done(dir);
+});
+
+test('commit mode stays out of the way: other commands, files outside every area, and a red gate that never ran for them', () => {
+  const dir = repo({ checks: check('app', '/a\\.txt$/', 'node -e 0') });
+  writeFileSync(join(dir, 'a.txt'), 'x');
+  assert.equal(run(dir, 'commit', commitCmd('git status --short')).status, 0);
+  assert.equal(run(dir, 'commit', commitCmd('git log --grep=commit')).status, 0);
+  assert.equal(run(dir, 'commit', { tool_name: 'Bash', tool_input: {} }).status, 0);
+  assert.equal(run(dir, 'stop').status, 0);
+  writeFileSync(join(dir, 'notes.md'), 'docs only');
+  assert.equal(run(dir, 'commit', commitCmd('git -C . commit -m "docs"')).status, 0);
   done(dir);
 });
 

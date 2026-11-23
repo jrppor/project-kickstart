@@ -5,6 +5,8 @@
 //   subagent-stop  The same checks when a subagent finishes, but only for one that worked in its own worktree
 //                  (e.g. /implement-spec workers). Stop does not fire for subagents, so without this they are never gated.
 //   format         After an Edit/Write, format the edited file. A formatter error (e.g. a syntax error) goes back to Claude.
+//   commit         PreToolUse on Bash: blocks `git commit` while a check area with changed files has no green run for those files.
+//                  It re-runs nothing; it only reads the last green run that `stop` recorded. Any other Bash command exits at once.
 //   session-start  Adds context only when the situation calls for it: the worktree rules (WORKTREE_RULES) when the session
 //                  was opened inside a linked worktree, and a warning when a Windows session path starts with a lowercase drive.
 //   subagent-start The worktree rules for every subagent that may write (not the read-only types in READ_ONLY_AGENTS).
@@ -109,7 +111,8 @@ const LENGTH_LIMITED_DOCS = [
 
 // กติกาที่ใช้เฉพาะตอนทำงานใน worktree อยู่นอก CLAUDE.md แล้วส่งเข้าบริบทตอนเริ่ม (project-kickstart I-037)
 const WORKTREE_RULES = "docs/guides/worktree.md";
-const READ_ONLY_AGENTS = /^(Explore|Plan|claude-code-guide|statusline-setup|web-fetch)$/;
+const GIT_COMMIT = /\bgit\b[^;&|\n]*\scommit(\s|$)/;
+const READ_ONLY_AGENTS =/^(Explore|Plan|claude-code-guide|statusline-setup|web-fetch)$/;
 const LOWERCASE_DRIVE_NOTE =
   "path ของ session นี้ขึ้นต้นด้วยไดรฟ์ตัวเล็ก (เปิดจากส่วนขยาย VS Code) บน Claude Code บางรุ่น การเรียก agent แบบ isolation: worktree จะถูกปฏิเสธ " +
   "(Refusing to use … as an isolation worktree) ก่อนเริ่มงานที่ให้ agent ย่อยทำขนานกัน ให้บอกผู้ใช้ว่าควรเปิด session จาก path ที่ขึ้นต้นด้วยไดรฟ์ตัวใหญ่ " +
@@ -121,11 +124,32 @@ if (mode === "session-start" || mode === "subagent-start") {
   startContext();
   process.exit(0);
 }
+// PreToolUse รันทุกคำสั่ง Bash: ที่ไม่ใช่ git commit ออกทันที ก่อนเรียก git ใดๆ
+if (mode === "commit" && !GIT_COMMIT.test(String(input.tool_input?.command ?? ""))) process.exit(0);
 const root = mode === "subagent-stop" ? subagentWorktree() : projectRoot();
 if (!root) process.exit(0); // nothing of this project to check
 
 if (mode === "format") format();
+else if (mode === "commit") commitGate();
 else if (mode === "stop" || mode === "subagent-stop") stop();
+
+// ก่อน git commit (PreToolUse): ไม่รันเช็กซ้ำ แค่ดูว่าส่วนที่มีไฟล์เปลี่ยนมีผลเขียวล่าสุดตรงกับไฟล์ตอนนี้หรือไม่ ไม่ตรง = บล็อก
+// ด่านรันตอนจบเทิร์น แต่ commit ระหว่างเทิร์นไม่มีอะไรกั้น (กำลังลอง · project-kickstart I-043)
+function commitGate() {
+  const gitDir = gitText(root, "rev-parse", "--absolute-git-dir");
+  const stamp = readJson(path.join(gitDir, "claude-verify.json"));
+  const changed = changedFiles(stamp.head ?? worktreeBase(gitDir), currentHead());
+  const stale = CHECKS.filter((check) => {
+    const files = changed.filter((f) => check.area.test(f));
+    return files.length > 0 && stamp.checks?.[check.name] !== fingerprint(files);
+  }).map((check) => check.name);
+  if (stale.length === 0) return;
+  process.stderr.write(
+    `ยังไม่ commit: ด่านยังไม่เขียวกับไฟล์ที่เปลี่ยนในส่วน ${stale.join(", ")} (ไม่เคยรัน หรือไฟล์เปลี่ยนหลังรันครั้งล่าสุด)\n` +
+      `รันด่านก่อน: echo {} | node .claude/hooks/verify.mjs stop แก้ที่แดงให้เขียว แล้วค่อย commit ใหม่\n`,
+  );
+  process.exit(2);
+}
 
 // ส่งข้อความเข้าบริบทเฉพาะเมื่อถึงสถานการณ์ ไม่พิมพ์อะไรเลยเมื่อไม่เข้าเงื่อนไข (session ปกติไม่เสียบริบท)
 function startContext() {
