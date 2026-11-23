@@ -7,6 +7,7 @@
 //   format         After an Edit/Write, format the edited file. A formatter error (e.g. a syntax error) goes back to Claude.
 //   commit         PreToolUse on Bash: blocks `git commit` while a check area with changed files has no green run for those files.
 //                  It re-runs nothing; it only reads the last green run that `stop` recorded. Any other Bash command exits at once.
+//   isolation-guard PreToolUse on Agent: refuses isolation: "worktree" on Windows when the session path starts with a lowercase drive.
 //   session-start  Adds context only when the situation calls for it: the worktree rules (WORKTREE_RULES) when the session
 //                  was opened inside a linked worktree, and a warning when a Windows session path starts with a lowercase drive.
 //   subagent-start The worktree rules for every subagent that may write (not the read-only types in READ_ONLY_AGENTS).
@@ -124,6 +125,10 @@ if (mode === "session-start" || mode === "subagent-start") {
   startContext();
   process.exit(0);
 }
+if (mode === "isolation-guard") {
+  isolationGuard();
+  process.exit(0);
+}
 // PreToolUse รันทุกคำสั่ง Bash: ที่ไม่ใช่ git commit ออกทันที ก่อนเรียก git ใดๆ
 if (mode === "commit" && !GIT_COMMIT.test(String(input.tool_input?.command ?? ""))) process.exit(0);
 const root = mode === "subagent-stop" ? subagentWorktree() : projectRoot();
@@ -147,6 +152,19 @@ function commitGate() {
   process.stderr.write(
     `ยังไม่ commit: ด่านยังไม่เขียวกับไฟล์ที่เปลี่ยนในส่วน ${stale.join(", ")} (ไม่เคยรัน หรือไฟล์เปลี่ยนหลังรันครั้งล่าสุด)\n` +
       `รันด่านก่อน: echo {} | node .claude/hooks/verify.mjs stop แก้ที่แดงให้เขียว แล้วค่อย commit ใหม่\n`,
+  );
+  process.exit(2);
+}
+
+// PreToolUse ของเครื่องมือ Agent: บน Windows ที่ path ของ session ขึ้นต้นด้วยไดรฟ์ตัวเล็ก Claude Code บางรุ่นปฏิเสธ isolation: worktree
+// ทุกครั้งและทิ้ง worktree ที่ locked ไว้ จึงปฏิเสธการเรียกนั้นก่อนสร้าง (กำลังลอง · project-kickstart I-045 · ถอดออกเมื่อ Claude Code แก้ ดู I-027)
+// ตั้ง KICKSTART_ISOLATION_OK=1 ใน environment เพื่อข้ามเมื่อรุ่นที่ใช้แก้แล้ว
+function isolationGuard() {
+  if (input.tool_input?.isolation !== "worktree" || process.env.KICKSTART_ISOLATION_OK === "1") return;
+  if (process.platform !== "win32" || !/^[a-z]:/.test(input.cwd || process.cwd())) return;
+  process.stderr.write(
+    "ไม่สร้าง worktree แยก: session นี้เปิดจาก path ไดรฟ์ตัวเล็ก (c:\\…) Claude Code บางรุ่นปฏิเสธ isolation: worktree ในกรณีนี้ทุกครั้งและทิ้ง worktree ที่ locked ไว้ " +
+      "ห้ามลองซ้ำ และห้ามสร้าง worktree เองแทนโดยไม่ถามผู้ใช้ ให้บอกผู้ใช้ว่าควรเปิด session ใหม่จาก path ที่ขึ้นต้นด้วยไดรฟ์ตัวใหญ่ (แอป Claude หรือ terminal) หรือทำทีละใบด้วย /implement\n",
   );
   process.exit(2);
 }
