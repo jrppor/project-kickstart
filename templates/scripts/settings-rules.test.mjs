@@ -65,3 +65,32 @@ const MUST_NOT_ASK = [
 ];
 for (const cmd of MUST_ASK) test(`ถูกถามก่อน: ${cmd}`, () => assert.notEqual(askHits(cmd).length, 0));
 for (const cmd of MUST_NOT_ASK) test(`ไม่ถูกถาม: ${cmd}`, () => assert.deepEqual(askHits(cmd), []));
+
+// กฎฝั่ง PowerShell (project-kickstart I-042) ลองกับ Claude Code จริงแล้วว่า: จับคู่แบบไม่แยกตัวพิมพ์ และชื่อย่อของ cmdlet (rm · ri · del)
+// ถูกแปลงเป็นชื่อเต็มก่อนเทียบกฎ เทสต์นี้จำลองแค่ข้อแรก จึงเขียนคำสั่งลบด้วยชื่อเต็ม
+// ไม่มีกฎคู่ของ `git branch -D`: เพราะไม่แยกตัวพิมพ์ กฎนั้นจะถาม `git branch -d` (ลบ branch ที่ merge แล้ว) ไปด้วย
+const psRules = (kind) => (JSON.parse(readFileSync(file, "utf8")).permissions?.[kind] ?? []).filter((r) => r.startsWith("PowerShell(") && r.endsWith(")")).map((r) => r.slice(11, -1));
+const psAsk = psRules("ask");
+const psDeny = psRules("deny");
+const psHits = (rules, cmd) => rules.filter((p) => new RegExp(toRegex(p).source, "si").test(cmd));
+const MUST_ASK_PS = [
+  "git restore .",
+  "git stash drop",
+  "git -C . reset --hard",
+  "git -C . clean -fd",
+  "git -C . checkout -- a.txt",
+  "git -C . worktree remove --force wt2",
+  "docker compose -p wt01 down -v",
+  "docker compose -p wt01 down --volumes",
+  "docker volume rm data",
+  "Remove-Item -Recurse -Force build",
+  "Remove-Item build -r",
+];
+const MUST_NOT_ASK_PS = ["git branch -d ticket-01", "git status --short", "docker compose -p wt01 down", "Remove-Item notes.txt", 'git commit -m "docs: tidy"'];
+const MUST_BLOCK_PS = ["git push --force origin main", "git push origin main --force", 'git commit --no-verify -m "x"', "git -C . push --force origin main"];
+for (const cmd of MUST_ASK_PS) test(`PowerShell ถูกถามก่อน: ${cmd}`, () => assert.notEqual(psHits(psAsk, cmd).length, 0));
+for (const cmd of MUST_NOT_ASK_PS) test(`PowerShell ไม่ถูกถาม: ${cmd}`, () => assert.deepEqual(psHits(psAsk, cmd), []));
+for (const cmd of MUST_BLOCK_PS) test(`PowerShell ถูกห้าม: ${cmd}`, () => assert.notEqual(psHits(psDeny, cmd).length, 0));
+// เพิ่มกฎ ask ฝั่ง Bash เมื่อไร ต้องเพิ่มคู่ฝั่ง PowerShell ด้วย ไม่อย่างนั้นคำสั่งเดียวกันหลุดเมื่อ agent เลือกเครื่องมือ PowerShell
+const NO_PS_TWIN = new Set(["rm -rf *", "git branch -D *", "git -* branch -D *"]);
+test("กฎ ask ของ Bash ทุกข้อมีคู่ฝั่ง PowerShell (ยกเว้นที่ระบุใน NO_PS_TWIN)", () => assert.deepEqual(bashAsk.filter((p) => !NO_PS_TWIN.has(p) && !psAsk.includes(p)), []));

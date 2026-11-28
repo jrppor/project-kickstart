@@ -32,6 +32,8 @@
       "PowerShell(git push --force *)",
       "PowerShell(git push -f *)",
       "PowerShell(git * --no-verify*)",
+      "PowerShell(git push * --force)",
+      "PowerShell(git push * --force *)",
       "PowerShell(git push +*)",
       "PowerShell(git push * +*)",
       "PowerShell(git -* push --force*)",
@@ -75,8 +77,22 @@
       "PowerShell(git clean *)",
       "PowerShell(git checkout -- *)",
       "PowerShell(git worktree remove --force*)",
+      "PowerShell(git -* reset --hard*)",
+      "PowerShell(git -* clean -*)",
+      "PowerShell(git -* checkout -- *)",
+      "PowerShell(git restore *)",
+      "PowerShell(git -* restore *)",
+      "PowerShell(git stash drop*)",
+      "PowerShell(git -* stash drop*)",
+      "PowerShell(git -* worktree remove --force*)",
       "PowerShell(docker compose down -v*)",
-      "PowerShell(Remove-Item *-Recurse*)"
+      "PowerShell(docker compose * down -v*)",
+      "PowerShell(docker compose down --volumes*)",
+      "PowerShell(docker compose * down --volumes*)",
+      "PowerShell(docker volume rm *)",
+      "PowerShell(Remove-Item *-Recurse*)",
+      "PowerShell(Remove-Item * -r*)",
+      "PowerShell(Remove-Item -r*)"
     ]
   },
   "hooks": {
