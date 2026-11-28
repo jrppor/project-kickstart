@@ -102,3 +102,10 @@ test("hook ก่อน git commit ครอบทั้ง Bash และ Power
   assert.ok(entry, "ไม่พบ hook ของโหมด commit ใน PreToolUse");
   for (const tool of ["Bash", "PowerShell"]) assert.match(tool, new RegExp(`^(${entry.matcher})$`), `matcher ไม่ครอบ ${tool}`);
 });
+
+// ด่านต้องเป็นตัวสร้าง worktree ไม่อย่างนั้น isolation: worktree ถูกปฏิเสธเมื่อ session เปิดจาก path ไดรฟ์ตัวเล็กบน Windows (project-kickstart I-050)
+test("hook WorktreeCreate ต่อกับโหมด worktree-create ของด่าน", () => {
+  const made = JSON.parse(readFileSync(file, "utf8")).hooks?.WorktreeCreate ?? [];
+  const wired = made.some((e) => (e.hooks ?? []).some((h) => String(h.command).includes("verify.mjs") && String(h.command).trim().endsWith(" worktree-create")));
+  assert.ok(wired, "ไม่พบ hook WorktreeCreate ที่เรียก verify.mjs worktree-create");
+});

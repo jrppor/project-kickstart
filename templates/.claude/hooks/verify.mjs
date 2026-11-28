@@ -7,11 +7,10 @@
 //   format         After an Edit/Write, format the edited file. A formatter error (e.g. a syntax error) goes back to Claude.
 //   commit         PreToolUse on Bash and PowerShell: blocks `git commit` while a check area with changed files has no green run for those files.
 //                  It re-runs nothing; it only reads the last green run that `stop` recorded. Any other command exits at once.
-//   isolation-guard PreToolUse on Agent: refuses isolation: "worktree" on Windows when the session path starts with a lowercase drive.
-//   worktree-create WorktreeCreate (on trial, not wired in the template's settings.json): makes the worktree itself and returns its
+//   worktree-create WorktreeCreate: makes the worktree itself (replacing Claude Code's own worktree creation) and returns its
 //                  real-case path, so isolation: "worktree" also works from a lowercase-drive session (project-kickstart I-050).
 //   session-start  Adds context only when the situation calls for it: the worktree rules (WORKTREE_RULES) when the session
-//                  was opened inside a linked worktree, and a warning when a Windows session path starts with a lowercase drive.
+//                  was opened inside a linked worktree.
 //   subagent-start The worktree rules for every subagent that may write (not the read-only types in READ_ONLY_AGENTS).
 // A stop also measures CLAUDE.md and docs/progress.md (LENGTH_LIMITED_DOCS): over the limit is a warning to the user that does
 //                  not block; over 1.5x the limit blocks, but only when this run edited that file (an old long file must not block other work).
@@ -118,19 +117,11 @@ const GIT_COMMIT = /\bgit\b[^;&|\n]*\scommit(\s|$)/;
 const READ_ONLY_AGENTS =/^(Explore|Plan|claude-code-guide|statusline-setup|web-fetch)$/;
 // เหตุผลที่ใส่ตอน lock worktree ที่ด่านสร้างเอง (โหมด worktree-create) ด่านปลดเฉพาะ lock ที่มีเหตุผลนี้
 const WORKTREE_LOCK_REASON = "claude agent at work (project-kickstart)";
-const LOWERCASE_DRIVE_NOTE =
-  "path ของ session นี้ขึ้นต้นด้วยไดรฟ์ตัวเล็ก (เปิดจากส่วนขยาย VS Code) บน Claude Code บางรุ่น การเรียก agent แบบ isolation: worktree จะถูกปฏิเสธ " +
-  "(Refusing to use … as an isolation worktree) ก่อนเริ่มงานที่ให้ agent ย่อยทำขนานกัน ให้บอกผู้ใช้ว่าควรเปิด session จาก path ที่ขึ้นต้นด้วยไดรฟ์ตัวใหญ่ " +
-  "(แอป Claude หรือ terminal) หรือทำทีละใบ อย่าสร้าง worktree เองแทนโดยไม่ถามผู้ใช้";
 
 const input = parseInput();
 const mode = process.argv[2];
 if (mode === "session-start" || mode === "subagent-start") {
   startContext();
-  process.exit(0);
-}
-if (mode === "isolation-guard") {
-  isolationGuard();
   process.exit(0);
 }
 if (mode === "worktree-create") {
@@ -165,25 +156,6 @@ function commitGate() {
       `รันด่านก่อน: echo {} | node .claude/hooks/verify.mjs stop แก้ที่แดงให้เขียว แล้วค่อย commit ใหม่\n`,
   );
   process.exit(2);
-}
-
-// PreToolUse ของเครื่องมือ Agent: บน Windows ที่ path ของ session ขึ้นต้นด้วยไดรฟ์ตัวเล็ก Claude Code บางรุ่นปฏิเสธ isolation: worktree
-// ทุกครั้งและทิ้ง worktree ที่ locked ไว้ จึงปฏิเสธการเรียกนั้นก่อนสร้าง (project-kickstart I-045 · ถอดออกเมื่อ Claude Code แก้ ดู I-027)
-// ตั้ง KICKSTART_ISOLATION_OK=1 ใน environment เพื่อข้ามเมื่อรุ่นที่ใช้แก้แล้ว
-function isolationGuard() {
-  if (input.tool_input?.isolation !== "worktree" || process.env.KICKSTART_ISOLATION_OK === "1" || createsOwnWorktrees()) return;
-  if (process.platform !== "win32" || !/^[a-z]:/.test(input.cwd || process.cwd())) return;
-  process.stderr.write(
-    "ไม่สร้าง worktree แยก: session นี้เปิดจาก path ไดรฟ์ตัวเล็ก (c:\\…) Claude Code บางรุ่นปฏิเสธ isolation: worktree ในกรณีนี้ทุกครั้งและทิ้ง worktree ที่ locked ไว้ " +
-      "ห้ามลองซ้ำ และห้ามสร้าง worktree เองแทนโดยไม่ถามผู้ใช้ ให้บอกผู้ใช้ว่าควรเปิด session ใหม่จาก path ที่ขึ้นต้นด้วยไดรฟ์ตัวใหญ่ (แอป Claude หรือ terminal) หรือทำทีละใบด้วย /implement\n",
-  );
-  process.exit(2);
-}
-
-// โปรเจกต์ต่อ hook WorktreeCreate ไว้หรือไม่ (ด่านสร้าง worktree เอง จึงไม่ต้องปฏิเสธหรือเตือนเรื่องไดรฟ์ตัวเล็ก)
-function createsOwnWorktrees() {
-  const base = process.env.CLAUDE_PROJECT_DIR || input.cwd || process.cwd();
-  return ["settings.json", "settings.local.json"].some((name) => (readJson(path.join(base, ".claude", name)).hooks?.WorktreeCreate ?? []).length > 0);
 }
 
 // WorktreeCreate: แทนการสร้าง worktree ของ Claude Code ทั้งหมด (agent แบบ isolation: worktree · claude --worktree · EnterWorktree)
@@ -255,7 +227,6 @@ function unlockOwnWorktree() {
 function startContext() {
   const here = input.cwd || process.cwd();
   const notes = [];
-  if (mode === "session-start" && process.platform === "win32" && /^[a-z]:/.test(here) && !createsOwnWorktrees()) notes.push(LOWERCASE_DRIVE_NOTE);
   const top = toplevel(here) ?? toplevel(process.env.CLAUDE_PROJECT_DIR);
   const wanted = mode === "subagent-start" ? !READ_ONLY_AGENTS.test(input.agent_type ?? "") : Boolean(top) && isLinkedWorktree(top);
   const rules = top ? path.join(top, WORKTREE_RULES) : null;

@@ -123,23 +123,6 @@ test('commit mode stays out of the way: other commands, files outside every area
   done(dir);
 });
 
-test('isolation-guard refuses isolation: worktree from a lowercase drive on Windows, and nothing else', { skip: process.platform !== 'win32' }, () => {
-  const dir = repo();
-  const lower = dir.replace(/^[A-Za-z]:/, (d) => d.toLowerCase());
-  const upper = dir.replace(/^[A-Za-z]:/, (d) => d.toUpperCase());
-  const call = (cwd, tool_input) => run(dir, 'isolation-guard', { cwd, tool_name: 'Agent', tool_input });
-  const refused = call(lower, { isolation: 'worktree', prompt: 'x' });
-  assert.equal(refused.status, 2);
-  assert.match(refused.err, /ไดรฟ์ตัวเล็ก/);
-  assert.equal(call(upper, { isolation: 'worktree', prompt: 'x' }).status, 0);
-  assert.equal(call(lower, { prompt: 'x' }).status, 0);
-  const off = spawnSync(process.execPath, [join(dir, '.claude', 'hooks', 'verify.mjs'), 'isolation-guard'], {
-    cwd: dir, input: JSON.stringify({ cwd: lower, tool_input: { isolation: 'worktree' } }), encoding: 'utf8', env: { ...process.env, CLAUDE_PROJECT_DIR: dir, KICKSTART_ISOLATION_OK: '1' },
-  });
-  assert.equal(off.status, 0);
-  done(dir);
-});
-
 function gitIn(dir, ...args) {
   return spawnSync('git', ['-C', dir, '-c', 'user.email=t@t', '-c', 'user.name=t', ...args], { encoding: 'utf8' });
 }
@@ -170,14 +153,6 @@ test('session-start is silent in the main checkout and hands the rules to a sess
   const inTree = run(dir, 'session-start', { cwd: tree.replace(/^[a-z]:/, (d) => d.toUpperCase()) });
   assert.match(JSON.parse(inTree.out).hookSpecificOutput.additionalContext, /use your own port/);
   gitIn(dir, 'worktree', 'remove', '--force', tree);
-  done(dir);
-});
-
-test('session-start warns about a lowercase drive letter on Windows only', { skip: process.platform !== 'win32' }, () => {
-  const dir = repo();
-  const lower = dir.replace(/^[A-Za-z]:/, (d) => d.toLowerCase());
-  const out = run(dir, 'session-start', { cwd: lower }).out;
-  assert.match(JSON.parse(out).hookSpecificOutput.additionalContext, /isolation: worktree/);
   done(dir);
 });
 
@@ -212,15 +187,5 @@ test('worktree-create makes a locked worktree from HEAD, copies the ignored file
   assert.equal(git('-C', own, 'branch', '--show-current'), 'worktree-feature-x');
   assert.doesNotMatch(git('worktree', 'list', '--porcelain'), /locked/);
   for (const t of [tree, own]) spawnSync('git', ['-C', dir, 'worktree', 'remove', '--force', t]);
-  done(dir);
-});
-
-test('a project that wires WorktreeCreate gets no lowercase-drive refusal or warning', { skip: process.platform !== 'win32' }, () => {
-  const dir = repo();
-  const lower = dir[0].toLowerCase() + dir.slice(1);
-  assert.equal(run(dir, 'isolation-guard', { cwd: lower, tool_input: { isolation: 'worktree' } }).status, 2);
-  writeFileSync(join(dir, '.claude', 'settings.json'), JSON.stringify({ hooks: { WorktreeCreate: [{ hooks: [{ type: 'command', command: 'x' }] }] } }));
-  assert.equal(run(dir, 'isolation-guard', { cwd: lower, tool_input: { isolation: 'worktree' } }).status, 0);
-  assert.equal(run(dir, 'session-start', { cwd: lower }).out, '');
   done(dir);
 });

@@ -118,16 +118,6 @@
             "timeout": 20
           }
         ]
-      },
-      {
-        "matcher": "Agent|Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/verify.mjs\" isolation-guard",
-            "timeout": 20
-          }
-        ]
       }
     ],
     "Stop": [
@@ -170,6 +160,17 @@
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/verify.mjs\" subagent-start",
             "timeout": 20
+          }
+        ]
+      }
+    ],
+    "WorktreeCreate": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/verify.mjs\" worktree-create",
+            "timeout": 60
           }
         ]
       }
