@@ -1,6 +1,6 @@
 schema_version: "1.0"
 name: status-reads-only
-description: ถามสถานะอย่างเดียว สกิลต้องรายงานแล้วปิดด้วยกล่องขั้นถัดไป โดยไม่แก้ไฟล์ใด
+description: ถามสถานะอย่างเดียว สกิลต้องเทียบ progress.md กับ repo (มี spec แล้ว ขั้นถัดไปคือ /to-tickets) รายงานแล้วปิดด้วยกล่องขั้นถัดไป โดยไม่แก้ไฟล์ใด
 tags: [kickstart]
 context:
   scaffold_script: scaffold.sh
@@ -16,6 +16,10 @@ graders:
   - type: regex
     name: names-the-feature
     pattern: 'booking'
+  # progress.md ยังจดว่าขั้น 4 แต่ repo มี spec แล้ว คำตอบที่เทียบกับ repo ต้องเอ่ยถึงคำสั่งของขั้น 5
+  - type: regex
+    name: sees-the-repo-is-ahead
+    pattern: '/to-tickets'
   - type: tool_used
     name: writes-nothing
     tool: Write

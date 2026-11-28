@@ -11,9 +11,10 @@ graders:
   - type: regex
     name: ends-with-next-box
     pattern: '▶ ต่อไป'
+  # ถามจริงคือเสนอครบทั้งสามขนาดให้เลือก การเดาเองจะเอ่ยถึงขนาดเดียว
   - type: regex
-    name: asks-the-size-of-the-work
-    pattern: 'ขนาดงาน|ขนาดของงาน|เล็ก[\s\S]{0,300}กลาง[\s\S]{0,300}ใหญ่'
+    name: offers-all-three-sizes
+    pattern: 'ขนาด[\s\S]{0,250}เล็ก[\s\S]{0,250}กลาง[\s\S]{0,250}ใหญ่'
   - type: file_exists
     name: no-brief-before-answers
     path: docs/brief.md
