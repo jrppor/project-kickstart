@@ -1,0 +1,28 @@
+schema_version: "1.0"
+name: new-project-asks-first
+description: โฟลเดอร์เปล่า สกิลต้องเริ่มขั้น 0 ด้วยการถามขนาดงานและซักโจทย์ ไม่เขียน brief หรือโค้ดก่อนผู้ใช้ตอบ
+tags: [kickstart]
+execution:
+  prompt: ผมอยากเริ่มโปรเจกต์ใหม่ในโฟลเดอร์นี้ตามชุด project-kickstart เป็นเว็บจองห้องประชุมของทีมราว 30 คน ช่วยเริ่มให้หน่อยครับ
+  max_turns: 40
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, Edit, Write]
+graders:
+  - type: regex
+    name: ends-with-next-box
+    pattern: '▶ ต่อไป'
+  - type: regex
+    name: asks-the-size-of-the-work
+    pattern: 'ขนาดงาน|ขนาดของงาน|เล็ก[\s\S]{0,300}กลาง[\s\S]{0,300}ใหญ่'
+  - type: file_exists
+    name: no-brief-before-answers
+    path: docs/brief.md
+    exists: false
+  - type: file_exists
+    name: no-code-yet
+    path: package.json
+    exists: false
+  - type: tool_used
+    name: skill-fired
+    tool: Skill
+    arm: with-only

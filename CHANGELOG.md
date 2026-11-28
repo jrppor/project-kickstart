@@ -3,6 +3,15 @@
 ทุกการเปลี่ยนแปลงของชุดนี้บันทึกที่นี่: เปลี่ยนอะไร · เพราะอะไร · ลองกับโปรเจกต์ไหนแล้ว
 รายการใหม่อยู่บนสุด
 
+## 2026-11-28 · รอบลอง I-049: เทสต์พฤติกรรมของสกิล `/kickstart` ด้วย `claude plugin eval`
+
+- **เพิ่ม (เครื่องมือของผู้ดูแลชุด ไม่เข้าโปรเจกต์ผู้ใช้):** `.claude-plugin/plugin.json` ให้ชุดถูกมองเป็นปลั๊กอินที่มีสกิล `kickstart` · `evals/` 3 กรณี (`new-project-asks-first` · `next-is-to-tickets` · `status-reads-only`) ตัวตรวจเป็นกฎตายตัวทั้งหมด · `.gitignore` กัน `evals/results/`
+- **รันอย่างไร:** จากโฟลเดอร์ชุด `claude plugin eval . --runs 3 -j 3 --model sonnet --scaffold --trust-plugin --allow-tools Edit Write --no-publish`
+- **ไม่กระทบ:** วิธีติดตั้งสกิลด้วยลิงก์ · แม่แบบ · พรอมต์ · เลขรุ่นซ่อม (ยัง 14) · README ยังไม่แก้
+- **ลองแล้ว (Windows · Claude Code 2.1.330):** sonnet แขนมีสกิลผ่าน 8 จาก 9 รอบ แขนไม่มีสกิลผ่าน 0 · haiku ผ่าน 3 จาก 9 (ไม่นิ่งพอ) · สกิลที่จงใจลบแถวคำสั่งขั้น 5 ทำให้กรณีนั้นผ่าน 0 จาก 3 · หนึ่งรอบเต็มด้วย sonnet เทียบเท่า 1.92 ดอลลาร์ตามราคารายการ
+- **ข้อจำกัด:** บน Windows ให้เครื่องมือ shell ไม่ได้ กรณีจึงไม่ครอบ commit ข้อซ่อม และ `check-skills.mjs` · ยังไม่ได้ลองบน macOS และ Linux
+- **อนุมัติ:** เสนอ 2026-11-28 · ให้ลอง 2026-11-28 เจ้าของ: "ลอง I-049" · ยังไม่รับเข้าแผน
+
 ## 2026-11-28 · รอบลอง I-050: โหมด `worktree-create` ในแม่แบบด่าน (ยังไม่ต่อใช้)
 
 - **เพิ่ม (ยังไม่มีผลกับโปรเจกต์ใด):** `templates/.claude/hooks/verify.mjs` โหมด `worktree-create` สำหรับ hook `WorktreeCreate` สร้าง worktree เองแล้วคืน path ตัวพิมพ์จริง เพื่อให้ `isolation: worktree` ใช้ได้จาก session ไดรฟ์ตัวเล็กบน Windows · คัดลอกไฟล์ตาม `.worktreeinclude` · lock worktree ของ agent ย่อยแล้วโหมด `subagent-stop` ปลดเมื่อด่านผ่าน · โหมด `isolation-guard` และคำเตือนไดรฟ์ตัวเล็กหยุดเองเมื่อโปรเจกต์ต่อ hook นี้

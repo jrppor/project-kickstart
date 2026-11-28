@@ -1,0 +1,32 @@
+schema_version: "1.0"
+name: status-reads-only
+description: ถามสถานะอย่างเดียว สกิลต้องรายงานแล้วปิดด้วยกล่องขั้นถัดไป โดยไม่แก้ไฟล์ใด
+tags: [kickstart]
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: ตอนนี้โปรเจกต์นี้ทำถึงไหนแล้วครับ ขอดูสถานะอย่างเดียว ยังไม่ต้องทำหรือแก้อะไร
+  max_turns: 40
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, Edit, Write]
+graders:
+  - type: regex
+    name: ends-with-next-box
+    pattern: '▶ ต่อไป'
+  - type: regex
+    name: names-the-feature
+    pattern: 'booking'
+  - type: tool_used
+    name: writes-nothing
+    tool: Write
+    min: 0
+    max: 0
+  - type: tool_used
+    name: edits-nothing
+    tool: Edit
+    min: 0
+    max: 0
+  - type: tool_used
+    name: skill-fired
+    tool: Skill
+    arm: with-only

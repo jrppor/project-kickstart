@@ -1,0 +1,26 @@
+schema_version: "1.0"
+name: next-is-to-tickets
+description: ฟีเจอร์มี spec แล้วแต่ progress.md ยังค้างที่ขั้น 4 สกิลต้องเชื่อ repo แล้วบอกให้ผู้ใช้พิมพ์ /to-tickets เอง ไม่แตก ticket แทน
+tags: [kickstart]
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: ขั้นต่อไปของโปรเจกต์นี้ต้องทำอะไรครับ ทำต่อให้ถึงจุดที่ต้องรอผมได้เลย
+  max_turns: 40
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, Edit, Write]
+graders:
+  - type: regex
+    name: names-the-to-tickets-command
+    pattern: '/to-tickets \.scratch/booking/spec\.md'
+  - type: regex
+    name: ends-with-next-box
+    pattern: '▶ ต่อไป'
+  - type: file_exists
+    name: does-not-write-tickets-itself
+    path: .scratch/booking/issues
+    exists: false
+  - type: tool_used
+    name: skill-fired
+    tool: Skill
+    arm: with-only
