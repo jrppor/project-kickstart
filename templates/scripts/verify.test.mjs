@@ -1,7 +1,7 @@
 // เทสต์ของ .claude/hooks/verify.mjs รันด้วย `node --test "scripts/*.test.mjs"`
 // ทำงานกับสำเนาของ verify.mjs ในคลังชั่วคราว โดยฉีด CHECKS/FORMATTERS ทดสอบและลดเวลา timeout ไม่แตะไฟล์จริง
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -11,7 +11,7 @@ import { after, test } from 'node:test';
 const hooks = join(dirname(fileURLToPath(import.meta.url)), '..', '.claude', 'hooks');
 const gate = join(hooks, 'verify.mjs');
 
-function repo({ checks = '', formatters = '', commit = true } = {}) {
+function repo({ checks = '', slowChecks = '', formatters = '', commit = true } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'verify-test-'));
   dirs.push(dir);
   const git = (...args) => spawnSync('git', ['-C', dir, '-c', 'user.email=t@t', '-c', 'user.name=t', ...args], { encoding: 'utf8' });
@@ -25,6 +25,8 @@ function repo({ checks = '', formatters = '', commit = true } = {}) {
   const source = readFileSync(gate, 'utf8')
     .replace(/const CHECK_TIMEOUT_MS = [\d_]+;/, 'const CHECK_TIMEOUT_MS = 1000;')
     .replace(/const CHECKS = \[[\s\S]*?\n\];/, `const CHECKS = [\n${checks}];`)
+    .replace(/const SLOW_CHECKS = \[[\s\S]*?\n\];/, `const SLOW_CHECKS = [\n${slowChecks}];`)
+    .replace(/const SLOW_START_DELAY_MS = [\d_]+;/, 'const SLOW_START_DELAY_MS = 0;')
     .replace(/const FORMATTERS = \[[\s\S]*?\n\];/, `const FORMATTERS = [\n${formatters}];`);
   assert.match(source, /const CHECK_TIMEOUT_MS = 1000;/, 'หา CHECK_TIMEOUT_MS ในไฟล์ด่านไม่เจอ');
   writeFileSync(join(dir, '.claude', 'hooks', 'verify.mjs'), source);
@@ -120,6 +122,87 @@ test('commit mode stays out of the way: other commands, files outside every area
   assert.equal(run(dir, 'stop').status, 0);
   writeFileSync(join(dir, 'notes.md'), 'docs only');
   assert.equal(run(dir, 'commit', commitCmd('git -C . commit -m "docs"')).status, 0);
+  done(dir);
+});
+
+// โหมด slow (project-kickstart I-048): เทสต์ช้ารันเบื้องหลังหลังจบเทิร์น
+const stopHook = { hook_event_name: 'Stop' };
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const heartbeat = `node -e "setInterval(()=>require('fs').writeFileSync('alive.txt',String(Date.now())),100)"`;
+
+test('slow mode waits for a green fast gate, wakes on red, blocks the commit with the status, and does not rerun the same files from a Stop hook', () => {
+  const slowChecks = check('full', '/a\\.txt$/', `node -e "process.exit(require('fs').existsSync('ok.flag')?0:3)"`);
+  const dir = repo({ checks: check('app', '/a\\.txt$/', 'node -e 0'), slowChecks });
+  writeFileSync(join(dir, 'a.txt'), 'x');
+  const early = run(dir, 'slow', stopHook);
+  assert.equal(early.status, 0);
+  assert.match(early.out, /ด่านเร็วยังไม่เขียว/);
+  assert.equal(run(dir, 'stop').status, 0);
+  const unrun = run(dir, 'commit', commitCmd());
+  assert.equal(unrun.status, 2);
+  assert.match(unrun.err, /full: ยังไม่ได้รัน/);
+  assert.equal(run(dir, 'commit', { ...commitCmd(), agent_id: 'agent-1' }).status, 0, 'a subagent has no Stop hook, so it is not held by slow checks');
+  const red = run(dir, 'slow', stopHook);
+  assert.equal(red.status, 2);
+  assert.match(red.err, /\[full\].*exit 3/);
+  assert.match(run(dir, 'commit', commitCmd()).err, /full: ล้มกับไฟล์ชุดนี้/);
+  const repeat = run(dir, 'slow', stopHook);
+  assert.equal(repeat.status, 0, 'the same files must not wake Claude a second time');
+  assert.equal(repeat.err, '');
+  writeFileSync(join(dir, 'ok.flag'), '');
+  const green = run(dir, 'slow');
+  assert.equal(green.status, 0);
+  assert.equal(green.err, '');
+  assert.equal(run(dir, 'commit', commitCmd()).status, 0);
+  assert.match(run(dir, 'slow', stopHook).out, /ไม่มีชุดที่ต้องรัน/);
+  done(dir);
+});
+
+test('one slow run at a time: it waits for the fast gate, a second run does nothing, the commit gate names it as running, and the fast gate stops it once its files change', async () => {
+  const dir = repo({ checks: check('app', '/a\\.txt$/', 'node -e 0'), slowChecks: check('full', '/a\\.txt$/', heartbeat) });
+  const [alive, lock, fastLock] = [join(dir, 'alive.txt'), join(dir, '.git', 'claude-verify-slow.lock'), join(dir, '.git', 'claude-verify-fast.lock')];
+  writeFileSync(join(dir, 'a.txt'), 'x');
+  assert.equal(run(dir, 'stop').status, 0);
+  writeFileSync(fastLock, JSON.stringify({ pid: process.pid }));
+  const first = spawn(process.execPath, [join(dir, '.claude', 'hooks', 'verify.mjs'), 'slow'], { cwd: dir, env: { ...process.env, CLAUDE_PROJECT_DIR: dir }, stdio: ['pipe', 'ignore', 'ignore'] });
+  first.stdin.end(JSON.stringify(stopHook));
+  try {
+    await sleep(1500);
+    assert.equal(existsSync(alive), false, 'the slow run started while the fast gate was still running');
+    rmSync(fastLock);
+    for (let i = 0; i < 150 && !existsSync(alive); i++) await sleep(100);
+    assert.equal(existsSync(alive), true, 'the slow run never started');
+    const second = run(dir, 'slow', stopHook);
+    assert.equal(second.status, 0);
+    assert.match(second.out, /มีรอบที่กำลังรันอยู่/);
+    assert.match(run(dir, 'commit', commitCmd()).err, /full: กำลังรันอยู่/);
+    writeFileSync(join(dir, 'a.txt'), 'changed while the slow run is in flight');
+    assert.equal(run(dir, 'stop').status, 0);
+    assert.equal(existsSync(lock), false);
+    const beat = readFileSync(alive, 'utf8');
+    await sleep(2000);
+    assert.equal(readFileSync(alive, 'utf8'), beat, 'the stale slow run is still writing after the fast gate stopped it');
+  } finally {
+    spawnSync('taskkill', ['/PID', String(first.pid), '/T', '/F']);
+    first.kill();
+  }
+  done(dir);
+});
+
+test('a slow result is dropped when its files changed during the run, and a project that declares no slow checks gets nothing new', () => {
+  const rewrite = `node -e "require('fs').writeFileSync('a.txt','rewritten by the run');process.exit(1)"`;
+  const dir = repo({ checks: check('app', '/a\\.txt$/', 'node -e 0'), slowChecks: check('full', '/a\\.txt$/', rewrite) });
+  writeFileSync(join(dir, 'a.txt'), 'x');
+  assert.equal(run(dir, 'stop').status, 0);
+  const dropped = run(dir, 'slow', stopHook);
+  assert.equal(dropped.status, 0);
+  assert.match(dropped.out, /ไฟล์เปลี่ยนระหว่างรัน/);
+  const plain = repo({ checks: check('app', '/a\\.txt$/', 'node -e 0') });
+  writeFileSync(join(plain, 'a.txt'), 'x');
+  assert.equal(run(plain, 'stop').status, 0);
+  assert.deepEqual(run(plain, 'slow', stopHook), { status: 0, out: '', err: '' });
+  assert.equal(run(plain, 'commit', commitCmd()).status, 0);
+  assert.equal(existsSync(join(plain, '.git', 'claude-verify-fast.lock')), false);
   done(dir);
 });
 

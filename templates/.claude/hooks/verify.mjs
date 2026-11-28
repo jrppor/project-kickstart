@@ -6,7 +6,10 @@
 //                  (e.g. /implement-spec workers). Stop does not fire for subagents, so without this they are never gated.
 //   format         After an Edit/Write, format the edited file. A formatter error (e.g. a syntax error) goes back to Claude.
 //   commit         PreToolUse on Bash and PowerShell: blocks `git commit` while a check area with changed files has no green run for those files.
-//                  It re-runs nothing; it only reads the last green run that `stop` recorded. Any other command exits at once.
+//                  It re-runs nothing; it only reads the last green run that `stop` (and `slow`) recorded. Any other command exits at once.
+//   slow           On trial, not wired in settings.json yet (project-kickstart I-048). A second Stop hook with "asyncRewake": true:
+//                  once the fast gate is green it runs SLOW_CHECKS in the background, so the turn ends without waiting.
+//                  Red exits 2, which wakes Claude with the output; green says nothing. One run at a time per worktree.
 //   worktree-create WorktreeCreate: makes the worktree itself (replacing Claude Code's own worktree creation) and returns its
 //                  real-case path, so isolation: "worktree" also works from a lowercase-drive session (project-kickstart I-050).
 //   session-start  Adds context only when the situation calls for it: the worktree rules (WORKTREE_RULES) when the session
@@ -24,9 +27,9 @@
 // needs คือไฟล์หรือโฟลเดอร์ (จาก cwd) ที่ต้องมีก่อนรัน เช่น node_modules หรือ .venv · install คือคำสั่งติดตั้งที่จะบอกเมื่อยังไม่มี
 // ตัวอย่างข้างล่างเป็นแค่ stack ตัวอย่าง ชื่อโฟลเดอร์ (api/, ui/, app/) ให้เปลี่ยนตามโปรเจกต์จริง
 // เทสต์ที่ช้า (integration ที่ต้องใช้ DB จริง, e2e, build แอปเต็ม) ไม่ต้องใส่ ให้เขียนไว้ใน CLAUDE.md ว่ารันก่อน commit
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const CHECKS = [
@@ -62,6 +65,13 @@ const CHECKS = [
   // { name: "app", area: /^(lib|test)\/.*\.dart$|^pubspec\.yaml$/, cwd: ".", cmds: ["flutter analyze", "flutter test"] },
 ];
 
+// เทสต์ที่ช้าเกินด่านตอนจบเทิร์น (โหมด slow · อยู่ระหว่างลอง ยังไม่ต่อ hook ใน settings.json) รูปเดียวกับ CHECKS ปล่อยว่าง = ไม่มีอะไรเปลี่ยนเลย
+// รันเบื้องหลังหลังด่านเร็วเขียว แดงแล้ว Claude ถูกปลุกพร้อมผล และ git commit ถูกบล็อกจนกว่าจะเขียวกับไฟล์ชุดนั้น
+// ชุดที่ใช้โฟลเดอร์ build ร่วมกับชุดใน CHECKS ให้ใส่ cwd เดียวกัน ด่านเร็วจะหยุดรอบที่ยังรันอยู่ก่อนรันในโฟลเดอร์นั้น
+const SLOW_CHECKS = [
+  // { name: "app-full", area: /^(lib|test|integration_test)\/.*\.dart$|^pubspec\.yaml$/, cwd: ".", cmds: ["flutter test integration_test"] },
+];
+
 const FORMATTERS = [
   // cmd คืน [โปรแกรม, argument] รันตรงโดยไม่ผ่าน shell: บน Windows ห้ามใช้ npx/npm/pnpm (เป็นไฟล์ .cmd) ให้เรียก node กับ path ของสคริปต์แทน
   // โปรแกรมที่หาไม่เจอบนเครื่อง = ข้ามพร้อมคำเตือน ไม่บล็อกการแก้ไฟล์
@@ -75,6 +85,10 @@ const FORMATTERS = [
 const OUTPUT_TAIL_LINES = 60;
 // เวลาสูงสุดต่อหนึ่งคำสั่งของด่าน คำสั่งที่ค้าง (เช่น เทสต์โหมด watch) ถูกตัดแล้วรายงานเป็นด่านแดง ไม่ปล่อยให้ hook หมดเวลาเงียบๆ
 const CHECK_TIMEOUT_MS = 120_000;
+// เวลาสูงสุดต่อหนึ่งคำสั่งของ SLOW_CHECKS ต้องน้อยกว่า timeout ของ hook โหมด slow ใน settings.json
+const SLOW_TIMEOUT_MS = 900_000;
+// hook สองตัวของ Stop เริ่มพร้อมกัน โหมด slow รอเท่านี้ให้ด่านเร็วประกาศว่ากำลังรันก่อน แล้วรอจนด่านเร็วจบ
+const SLOW_START_DELAY_MS = 3000;
 // รันคำสั่งของด่านผ่านตัวคุมเล็กๆ ที่ฆ่าทั้งต้นไม้โปรเซสเมื่อเกินเวลา (timeout ของ spawnSync ฆ่าได้แค่ shell ตัวหุ้ม โปรเซสลูกบน Windows ค้างต่อ)
 // ผ่านการทดสอบบน Windows แล้ว ส่วน macOS/Linux ใช้ process group (detached + kill -pid) ยังไม่ได้ลองบนเครื่องจริง
 const CHECK_RUNNER = `
@@ -82,11 +96,13 @@ const { spawn, spawnSync } = require("node:child_process");
 const [cmd, ms] = [process.argv[1], Number(process.argv[2])];
 const win = process.platform === "win32";
 const child = spawn(cmd, { shell: true, stdio: "inherit", detached: !win });
-const timer = setTimeout(() => {
+const stop = (code) => {
   if (win) spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"]);
   else try { process.kill(-child.pid, "SIGKILL"); } catch {}
-  process.exit(124);
-}, ms);
+  process.exit(code);
+};
+const timer = setTimeout(() => stop(124), ms);
+process.on("SIGTERM", () => stop(143));
 child.on("exit", (code) => { clearTimeout(timer); process.exit(code ?? 1); });
 child.on("error", () => process.exit(1));
 `;
@@ -135,27 +151,188 @@ if (!root) process.exit(0); // nothing of this project to check
 
 if (mode === "format") format();
 else if (mode === "commit") commitGate();
+else if (mode === "slow") await slow();
 else if (mode === "stop" || mode === "subagent-stop") {
   stop();
   if (mode === "subagent-stop") unlockOwnWorktree();
 }
 
 // ก่อน git commit (PreToolUse): ไม่รันเช็กซ้ำ แค่ดูว่าส่วนที่มีไฟล์เปลี่ยนมีผลเขียวล่าสุดตรงกับไฟล์ตอนนี้หรือไม่ ไม่ตรง = บล็อก
-// ด่านรันตอนจบเทิร์น แต่ commit ระหว่างเทิร์นไม่มีอะไรกั้น (project-kickstart I-043)
+// ด่านรันตอนจบเทิร์น แต่ commit ระหว่างเทิร์นไม่มีอะไรกั้น (project-kickstart I-043) · เทสต์ช้าที่ยังรันอยู่หรือยังไม่เขียวก็บล็อกเช่นกัน (I-048)
 function commitGate() {
   const gitDir = gitText(root, "rev-parse", "--absolute-git-dir");
+  const stale = staleChecks(gitDir);
+  const slowLines = slowStatus(gitDir);
+  if (stale.length > 0) {
+    process.stderr.write(
+      `ยังไม่ commit: ด่านยังไม่เขียวกับไฟล์ที่เปลี่ยนในส่วน ${stale.join(", ")} (ไม่เคยรัน หรือไฟล์เปลี่ยนหลังรันครั้งล่าสุด)\n` +
+        `รันด่านก่อน: echo {} | node .claude/hooks/verify.mjs stop แก้ที่แดงให้เขียว แล้วค่อย commit ใหม่\n`,
+    );
+  }
+  if (slowLines.length > 0) {
+    process.stderr.write(
+      `ยังไม่ commit: เทสต์ช้ายังไม่เขียวกับไฟล์ที่เปลี่ยน\n${slowLines.join("\n")}\n` +
+        `รอรอบที่รันอยู่ให้จบ หรือรันเองแล้วรอผล (นาน ให้รันแบบเบื้องหลัง): echo {} | node .claude/hooks/verify.mjs slow\n`,
+    );
+  }
+  if (stale.length > 0 || slowLines.length > 0) process.exit(2);
+}
+
+// ชื่อชุดของด่านเร็วที่ยังไม่เขียวกับไฟล์ที่เปลี่ยนตอนนี้
+function staleChecks(gitDir) {
   const stamp = readJson(path.join(gitDir, "claude-verify.json"));
   const changed = changedFiles(stamp.head ?? worktreeBase(gitDir), currentHead());
-  const stale = CHECKS.filter((check) => {
+  return CHECKS.filter((check) => {
     const files = changed.filter((f) => check.area.test(f));
     return files.length > 0 && stamp.checks?.[check.name] !== fingerprint(files);
   }).map((check) => check.name);
-  if (stale.length === 0) return;
-  process.stderr.write(
-    `ยังไม่ commit: ด่านยังไม่เขียวกับไฟล์ที่เปลี่ยนในส่วน ${stale.join(", ")} (ไม่เคยรัน หรือไฟล์เปลี่ยนหลังรันครั้งล่าสุด)\n` +
-      `รันด่านก่อน: echo {} | node .claude/hooks/verify.mjs stop แก้ที่แดงให้เขียว แล้วค่อย commit ใหม่\n`,
-  );
-  process.exit(2);
+}
+
+// สถานะเทสต์ช้าของ worktree นี้: ผลเขียวและผลล้มล่าสุดอยู่ใน <git-dir>/claude-verify-slow.json รอบที่กำลังรันอยู่ใน claude-verify-slow.lock
+// prints = ลายนิ้วมือไฟล์ตอนนี้ของแต่ละชุดที่มีไฟล์เปลี่ยน · due = ชุดที่ยังไม่เขียวกับไฟล์ตอนนี้ · running = รอบที่โปรเซสยังอยู่
+function slowState(gitDir) {
+  const stamp = { checks: {}, failed: {}, ...readJson(path.join(gitDir, "claude-verify-slow.json")) };
+  const changed = changedFiles(stamp.head ?? worktreeBase(gitDir), currentHead());
+  const prints = {};
+  const due = [];
+  for (const check of SLOW_CHECKS) {
+    const files = changed.filter((f) => check.area.test(f));
+    if (files.length === 0) continue;
+    prints[check.name] = fingerprint(files);
+    if (stamp.checks[check.name] !== prints[check.name]) due.push({ check, files, print: prints[check.name] });
+  }
+  const lock = readJson(path.join(gitDir, "claude-verify-slow.lock"));
+  return { stamp, prints, due, running: alive(lock.pid) ? lock : null };
+}
+
+// บรรทัดสถานะให้ hook ก่อน commit: ชุดไหนกำลังรัน ล้มแล้ว หรือยังไม่ได้รัน · agent ย่อยไม่ถูกบล็อกด้วยเทสต์ช้า เพราะ hook Stop ไม่รันให้ agent ย่อย
+// จึงไม่มีรอบของตัวเอง งานของ agent ถูกรันตอน session หลักจบเทิร์น (ไฟล์ที่ commit หลังผลเขียวล่าสุดนับเป็นไฟล์ที่เปลี่ยน)
+function slowStatus(gitDir) {
+  if (SLOW_CHECKS.length === 0 || input.agent_id) return [];
+  const { stamp, due, running } = slowState(gitDir);
+  return due.map(({ check, print }) => {
+    if (running?.prints[check.name] === print) return `- ${check.name}: กำลังรันอยู่ (เริ่มมาแล้ว ${Math.round((Date.now() - running.started) / 1000)} วินาที)`;
+    if (stamp.failed[check.name] === print) return `- ${check.name}: ล้มกับไฟล์ชุดนี้ แก้ให้ผ่านก่อน`;
+    return `- ${check.name}: ยังไม่ได้รันกับไฟล์ชุดนี้ (รันให้เองหลังจบเทิร์น)`;
+  });
+}
+
+// โหมด slow: hook Stop ตัวที่สองแบบ asyncRewake · exit 0 ไม่มีอะไรเข้าบริบท (บรรทัดใน stdout มีไว้ให้คนที่รันเองเห็น) · exit 2 ปลุก Claude ด้วย stderr
+async function slow() {
+  if (SLOW_CHECKS.length === 0) return;
+  const gitDir = gitText(root, "rev-parse", "--absolute-git-dir");
+  const fromHook = Boolean(input.hook_event_name);
+  const say = (text) => void process.stdout.write(`${text}\n`);
+  if (fromHook) await sleep(SLOW_START_DELAY_MS);
+  while (alive(readJson(path.join(gitDir, "claude-verify-fast.lock")).pid)) await sleep(500);
+  if (staleChecks(gitDir).length > 0) return say("ข้ามเทสต์ช้า: ด่านเร็วยังไม่เขียว");
+  const { stamp, due, running } = slowState(gitDir);
+  // ไฟล์ชุดที่ล้มไปแล้วไม่รันซ้ำเองตอนจบเทิร์น (ไม่ปลุก Claude วนด้วยผลเดิม) แต่รันเองซ้ำได้เสมอ
+  const todo = fromHook ? due.filter((d) => stamp.failed[d.check.name] !== d.print) : due;
+  if (todo.length === 0) return say(due.length > 0 ? "ข้ามเทสต์ช้า: ล้มกับไฟล์ชุดนี้ไปแล้ว และไฟล์ยังไม่เปลี่ยน" : "เทสต์ช้า: ไม่มีชุดที่ต้องรัน");
+  if (running) return say(`ข้ามเทสต์ช้า: มีรอบที่กำลังรันอยู่ (pid ${running.pid})`);
+  const lockPath = path.join(gitDir, "claude-verify-slow.lock");
+  rmSync(lockPath, { force: true }); // lock ของโปรเซสที่ตายไปแล้ว
+  const mine = { pid: process.pid, started: Date.now(), cwds: todo.map((d) => d.check.cwd), prints: Object.fromEntries(todo.map((d) => [d.check.name, d.print])) };
+  try {
+    writeFileSync(lockPath, JSON.stringify(mine), { flag: "wx" });
+  } catch {
+    return; // อีกโปรเซสเริ่มรอบไปก่อนในจังหวะเดียวกัน
+  }
+  try {
+    const failures = new Map();
+    for (const { check, files } of todo) {
+      const missing = missingNeeds(check);
+      if (missing) failures.set(check.name, missing);
+      for (const cmd of missing ? [] : typeof check.cmds === "function" ? check.cmds(files) : check.cmds) {
+        const r = await runInBackground(cmd, path.join(root, check.cwd), gitDir);
+        if (r.status === 0) continue;
+        failures.set(check.name, failText(check, cmd, r.status, SLOW_TIMEOUT_MS, r.output));
+        break;
+      }
+    }
+    const now = slowState(gitDir);
+    if (todo.some((d) => now.prints[d.check.name] !== d.print)) return say("ทิ้งผลเทสต์ช้า: ไฟล์เปลี่ยนระหว่างรัน การจบเทิร์นครั้งถัดไปจะรันใหม่");
+    for (const { check, print } of todo) {
+      if (failures.has(check.name)) now.stamp.failed[check.name] = print;
+      else (now.stamp.checks[check.name] = print), delete now.stamp.failed[check.name];
+    }
+    if (failures.size === 0 && now.due.length === todo.length) {
+      // ทุกชุดเขียว: ขยับจุดเทียบมาที่ HEAD ตอนนี้ แล้วจดลายนิ้วมือเทียบกับจุดใหม่ (ไม่อย่างนั้นไฟล์ที่ commit ไปแล้วทำให้รอบหน้ารันซ้ำ)
+      const head = currentHead();
+      const dirty = changedFiles(head, head);
+      now.stamp.head = head;
+      now.stamp.checks = Object.fromEntries(SLOW_CHECKS.map((c) => [c.name, fingerprint(dirty.filter((f) => c.area.test(f)))]));
+    }
+    writeJson(path.join(gitDir, "claude-verify-slow.json"), now.stamp);
+    if (failures.size === 0) return say(`เทสต์ช้าเขียว: ${todo.map((d) => d.check.name).join(", ")}`);
+    process.stderr.write(
+      `เทสต์ช้าไม่ผ่าน (รันเบื้องหลังหลังจบเทิร์น) แก้ให้ผ่าน หรือบอกผู้ใช้ว่าทำไมแก้ไม่ได้\n` +
+        `ไฟล์ชุดเดิมจะไม่ถูกรันซ้ำเอง รันซ้ำเอง: echo {} | node .claude/hooks/verify.mjs slow\n\n${[...failures.values()].join("\n\n")}\n`,
+    );
+    process.exitCode = 2;
+  } finally {
+    rmSync(lockPath, { force: true });
+  }
+}
+
+// รันคำสั่งของเทสต์ช้าแบบไม่บล็อก เพื่อให้รับ SIGTERM ได้ (macOS/Linux: ส่งต่อให้ตัวคุมฆ่าทั้งกลุ่มโปรเซส ยังไม่ได้ลองบนเครื่องจริง · Windows ใช้ taskkill /T จากข้างนอก)
+function runInBackground(cmd, dir, gitDir) {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, runnerArgs(cmd, gitDir, SLOW_TIMEOUT_MS), { cwd: dir });
+    let output = "";
+    for (const stream of [child.stdout, child.stderr]) stream.on("data", (data) => (output = (output + data).slice(-200_000)));
+    const onTerm = () => (child.kill("SIGTERM"), process.exit(1));
+    process.once("SIGTERM", onTerm);
+    const end = (status) => (process.off("SIGTERM", onTerm), resolve({ status: status ?? 1, output }));
+    child.on("close", end);
+    child.on("error", () => end(1));
+  });
+}
+
+// ด่านเร็วกับเทสต์ช้าไม่รันพร้อมกันในโฟลเดอร์เดียวกัน: ด่านเร็วหยุดรอบเทสต์ช้าที่ไฟล์เปลี่ยนไปแล้ว หรือที่ใช้ cwd ของชุดที่ด่านเร็วกำลังจะรัน
+// ผลของรอบนั้นใช้ไม่ได้อยู่แล้ว โหมด slow ของการจบเทิร์นครั้งนี้เริ่มรอบใหม่เองหลังด่านเร็วจบ
+function stopSlowRun(gitDir, cwd) {
+  const { running, prints } = slowState(gitDir);
+  if (!running) return;
+  const stale = Object.entries(running.prints).some(([name, print]) => prints[name] !== print);
+  if (!stale && !running.cwds.includes(cwd)) return;
+  try {
+    if (process.platform === "win32") spawnSync("taskkill", ["/PID", String(running.pid), "/T", "/F"]);
+    else process.kill(running.pid, "SIGTERM");
+  } catch {
+    // โปรเซสจบไปก่อนแล้ว
+  }
+  rmSync(path.join(gitDir, "claude-verify-slow.lock"), { force: true });
+}
+
+function alive(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error.code === "EPERM";
+  }
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function runnerArgs(cmd, gitDir, ms) {
+  return ["-e", CHECK_RUNNER, cmd.replaceAll("{gitDir}", gitDir), String(ms)];
+}
+
+function failText(check, cmd, status, ms, output) {
+  const why = status === 124 ? `เกิน ${ms / 1000} วินาที คำสั่งค้างหรือช้าเกินสำหรับด่าน` : `exit ${status}`;
+  return `[${check.name}] \`${cmd}\` ล้ม (${why}) ใน ${check.cwd}/\n${tail(output)}`;
+}
+
+function missingNeeds(check) {
+  if (!check.needs || existsSync(path.join(root, check.cwd, check.needs))) return null;
+  const install = check.install ? `ให้รัน \`${check.install}\`` : "ให้ติดตั้ง dependency ของส่วนนี้";
+  return `[${check.name}] ไม่มี ${check.cwd}/${check.needs} ${install} ใน ${check.cwd}/ ก่อน แล้วจบงานใหม่`;
 }
 
 // WorktreeCreate: แทนการสร้าง worktree ของ Claude Code ทั้งหมด (agent แบบ isolation: worktree · claude --worktree · EnterWorktree)
@@ -324,6 +501,13 @@ function stop() {
   stamp.checks ??= {};
   const head = currentHead(); // null in a repo with no commit yet
   const changed = changedFiles(stamp.head ?? worktreeBase(gitDir), head);
+  if (SLOW_CHECKS.length > 0) {
+    // ประกาศว่าด่านเร็วกำลังรัน ให้โหมด slow ของการจบเทิร์นเดียวกันรอ
+    const fastLock = path.join(gitDir, "claude-verify-fast.lock");
+    writeJson(fastLock, { pid: process.pid });
+    process.on("exit", () => rmSync(fastLock, { force: true }));
+    stopSlowRun(gitDir);
+  }
 
   const failures = [];
   const failedKeys = []; // which check and command failed, without its output (timings in the output change every run)
@@ -334,19 +518,19 @@ function stop() {
     if (stamp.checks[check.name] === print) continue;
 
     const dir = path.join(root, check.cwd);
-    if (check.needs && !existsSync(path.join(dir, check.needs))) {
-      const install = check.install ? `ให้รัน \`${check.install}\`` : "ให้ติดตั้ง dependency ของส่วนนี้";
-      failures.push(`[${check.name}] ไม่มี ${check.cwd}/${check.needs} ${install} ใน ${check.cwd}/ ก่อน แล้วจบงานใหม่`);
+    const missing = missingNeeds(check);
+    if (missing) {
+      failures.push(missing);
       failedKeys.push(`${check.name}:needs`);
       continue;
     }
+    if (SLOW_CHECKS.length > 0) stopSlowRun(gitDir, check.cwd);
     const cmds = typeof check.cmds === "function" ? check.cmds(files) : check.cmds;
     const failed = cmds.some((cmd) => {
-      const r = spawnSync(process.execPath, ["-e", CHECK_RUNNER, cmd.replaceAll("{gitDir}", gitDir), String(CHECK_TIMEOUT_MS)], { cwd: dir, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: CHECK_TIMEOUT_MS + 15_000 });
+      const r = spawnSync(process.execPath, runnerArgs(cmd, gitDir, CHECK_TIMEOUT_MS), { cwd: dir, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: CHECK_TIMEOUT_MS + 15_000 });
       if (r.status === 0) return false;
       const timedOut = r.status === 124 || r.error?.code === "ETIMEDOUT";
-      const why = timedOut ? `เกิน ${CHECK_TIMEOUT_MS / 1000} วินาที คำสั่งค้างหรือช้าเกินสำหรับด่าน` : `exit ${r.status}`;
-      failures.push(`[${check.name}] \`${cmd}\` ล้ม (${why}) ใน ${check.cwd}/\n${tail(`${r.stdout ?? ""}${r.stderr ?? ""}`)}`);
+      failures.push(failText(check, cmd, timedOut ? 124 : r.status, CHECK_TIMEOUT_MS, `${r.stdout ?? ""}${r.stderr ?? ""}`));
       failedKeys.push(`${check.name}:${cmd}`);
       return true;
     });
