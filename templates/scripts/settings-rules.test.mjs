@@ -94,3 +94,11 @@ for (const cmd of MUST_BLOCK_PS) test(`PowerShell ถูกห้าม: ${cmd}`
 // เพิ่มกฎ ask ฝั่ง Bash เมื่อไร ต้องเพิ่มคู่ฝั่ง PowerShell ด้วย ไม่อย่างนั้นคำสั่งเดียวกันหลุดเมื่อ agent เลือกเครื่องมือ PowerShell
 const NO_PS_TWIN = new Set(["rm -rf *", "git branch -D *", "git -* branch -D *"]);
 test("กฎ ask ของ Bash ทุกข้อมีคู่ฝั่ง PowerShell (ยกเว้นที่ระบุใน NO_PS_TWIN)", () => assert.deepEqual(bashAsk.filter((p) => !NO_PS_TWIN.has(p) && !psAsk.includes(p)), []));
+
+// hook ก่อน git commit ต้องครอบทุกเครื่องมือที่รันคำสั่ง shell ได้ ไม่อย่างนั้น commit ผ่านอีกเครื่องมือหนึ่งไม่ถูกกั้น (project-kickstart I-052)
+test("hook ก่อน git commit ครอบทั้ง Bash และ PowerShell", () => {
+  const pre = JSON.parse(readFileSync(file, "utf8")).hooks?.PreToolUse ?? [];
+  const entry = pre.find((e) => (e.hooks ?? []).some((h) => String(h.command).includes("verify.mjs") && String(h.command).trim().endsWith(" commit")));
+  assert.ok(entry, "ไม่พบ hook ของโหมด commit ใน PreToolUse");
+  for (const tool of ["Bash", "PowerShell"]) assert.match(tool, new RegExp(`^(${entry.matcher})$`), `matcher ไม่ครอบ ${tool}`);
+});

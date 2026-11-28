@@ -5,8 +5,8 @@
 //   subagent-stop  The same checks when a subagent finishes, but only for one that worked in its own worktree
 //                  (e.g. /implement-spec workers). Stop does not fire for subagents, so without this they are never gated.
 //   format         After an Edit/Write, format the edited file. A formatter error (e.g. a syntax error) goes back to Claude.
-//   commit         PreToolUse on Bash: blocks `git commit` while a check area with changed files has no green run for those files.
-//                  It re-runs nothing; it only reads the last green run that `stop` recorded. Any other Bash command exits at once.
+//   commit         PreToolUse on Bash and PowerShell: blocks `git commit` while a check area with changed files has no green run for those files.
+//                  It re-runs nothing; it only reads the last green run that `stop` recorded. Any other command exits at once.
 //   isolation-guard PreToolUse on Agent: refuses isolation: "worktree" on Windows when the session path starts with a lowercase drive.
 //   worktree-create WorktreeCreate (on trial, not wired in the template's settings.json): makes the worktree itself and returns its
 //                  real-case path, so isolation: "worktree" also works from a lowercase-drive session (project-kickstart I-050).
@@ -137,7 +137,7 @@ if (mode === "worktree-create") {
   worktreeCreate();
   process.exit(0);
 }
-// PreToolUse รันทุกคำสั่ง Bash: ที่ไม่ใช่ git commit ออกทันที ก่อนเรียก git ใดๆ
+// PreToolUse รันทุกคำสั่งของ Bash และ PowerShell: ที่ไม่ใช่ git commit ออกทันที ก่อนเรียก git ใดๆ
 if (mode === "commit" && !GIT_COMMIT.test(String(input.tool_input?.command ?? ""))) process.exit(0);
 const root = mode === "subagent-stop" ? subagentWorktree() : projectRoot();
 if (!root) process.exit(0); // nothing of this project to check
