@@ -2,7 +2,7 @@
 // ทำงานกับสำเนาของ verify.mjs ในคลังชั่วคราว โดยฉีด CHECKS/FORMATTERS ทดสอบและลดเวลา timeout ไม่แตะไฟล์จริง
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -178,5 +178,49 @@ test('session-start warns about a lowercase drive letter on Windows only', { ski
   const lower = dir.replace(/^[A-Za-z]:/, (d) => d.toLowerCase());
   const out = run(dir, 'session-start', { cwd: lower }).out;
   assert.match(JSON.parse(out).hookSpecificOutput.additionalContext, /isolation: worktree/);
+  done(dir);
+});
+
+test('worktree-create makes a locked worktree from HEAD, copies the ignored files that .worktreeinclude lists, and returns its real path', () => {
+  const dir = repo();
+  const git = (...args) => spawnSync('git', ['-C', dir, ...args], { encoding: 'utf8' }).stdout.trim();
+  writeFileSync(join(dir, '.gitignore'), '.env\nsecret.txt\n');
+  writeFileSync(join(dir, '.worktreeinclude'), '# comment\n.env\n');
+  writeFileSync(join(dir, '.env'), 'A=1');
+  mkdirSync(join(dir, 'ui'));
+  writeFileSync(join(dir, 'ui', '.env'), 'B=2');
+  writeFileSync(join(dir, 'secret.txt'), 'not listed');
+  const made = run(dir, 'worktree-create', { cwd: dir, name: 'agent-abc123' });
+  assert.equal(made.status, 0, made.err);
+  const tree = made.out.trim().split('\n').pop();
+  assert.equal(tree, realpathSync.native(join(dir, '.claude', 'worktrees', 'agent-abc123')));
+  assert.equal(git('-C', tree, 'branch', '--show-current'), 'worktree-agent-abc123');
+  assert.equal(git('-C', tree, 'rev-parse', 'HEAD'), git('rev-parse', 'HEAD'));
+  assert.equal(readFileSync(join(tree, '.env'), 'utf8'), 'A=1');
+  assert.equal(readFileSync(join(tree, 'ui', '.env'), 'utf8'), 'B=2');
+  assert.equal(existsSync(join(tree, 'secret.txt')), false);
+  assert.equal(readFileSync(join(git('-C', tree, 'rev-parse', '--absolute-git-dir'), 'CLAUDE_BASE'), 'utf8'), git('rev-parse', 'HEAD'));
+  assert.match(git('worktree', 'list', '--porcelain'), /locked/);
+  // เรียกซ้ำด้วยชื่อเดิมคืน path เดิม ไม่สร้างซ้อน · ชื่อที่พาออกนอกโฟลเดอร์ถูกปฏิเสธ
+  assert.equal(run(dir, 'worktree-create', { cwd: dir, name: 'agent-abc123' }).out.trim(), tree);
+  assert.equal(run(dir, 'worktree-create', { cwd: dir, name: '../x' }).status, 1);
+  // agent ของ worktree นั้นจบและด่านผ่าน: lock ที่ด่านใส่ถูกปลด
+  assert.equal(run(dir, 'subagent-stop', { cwd: tree }).status, 0);
+  assert.doesNotMatch(git('worktree', 'list', '--porcelain'), /locked/);
+  // worktree ของ session (ชื่อไม่ขึ้นต้นด้วย agent-) ไม่ถูก lock เพราะไม่มี subagent-stop มาปลด
+  const own = run(dir, 'worktree-create', { cwd: dir, name: 'feature-x' }).out.trim();
+  assert.equal(git('-C', own, 'branch', '--show-current'), 'worktree-feature-x');
+  assert.doesNotMatch(git('worktree', 'list', '--porcelain'), /locked/);
+  for (const t of [tree, own]) spawnSync('git', ['-C', dir, 'worktree', 'remove', '--force', t]);
+  done(dir);
+});
+
+test('a project that wires WorktreeCreate gets no lowercase-drive refusal or warning', { skip: process.platform !== 'win32' }, () => {
+  const dir = repo();
+  const lower = dir[0].toLowerCase() + dir.slice(1);
+  assert.equal(run(dir, 'isolation-guard', { cwd: lower, tool_input: { isolation: 'worktree' } }).status, 2);
+  writeFileSync(join(dir, '.claude', 'settings.json'), JSON.stringify({ hooks: { WorktreeCreate: [{ hooks: [{ type: 'command', command: 'x' }] }] } }));
+  assert.equal(run(dir, 'isolation-guard', { cwd: lower, tool_input: { isolation: 'worktree' } }).status, 0);
+  assert.equal(run(dir, 'session-start', { cwd: lower }).out, '');
   done(dir);
 });

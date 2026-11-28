@@ -8,6 +8,8 @@
 //   commit         PreToolUse on Bash: blocks `git commit` while a check area with changed files has no green run for those files.
 //                  It re-runs nothing; it only reads the last green run that `stop` recorded. Any other Bash command exits at once.
 //   isolation-guard PreToolUse on Agent: refuses isolation: "worktree" on Windows when the session path starts with a lowercase drive.
+//   worktree-create WorktreeCreate (on trial, not wired in the template's settings.json): makes the worktree itself and returns its
+//                  real-case path, so isolation: "worktree" also works from a lowercase-drive session (project-kickstart I-050).
 //   session-start  Adds context only when the situation calls for it: the worktree rules (WORKTREE_RULES) when the session
 //                  was opened inside a linked worktree, and a warning when a Windows session path starts with a lowercase drive.
 //   subagent-start The worktree rules for every subagent that may write (not the read-only types in READ_ONLY_AGENTS).
@@ -25,7 +27,7 @@
 // เทสต์ที่ช้า (integration ที่ต้องใช้ DB จริง, e2e, build แอปเต็ม) ไม่ต้องใส่ ให้เขียนไว้ใน CLAUDE.md ว่ารันก่อน commit
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const CHECKS = [
@@ -114,6 +116,8 @@ const LENGTH_LIMITED_DOCS = [
 const WORKTREE_RULES = "docs/guides/worktree.md";
 const GIT_COMMIT = /\bgit\b[^;&|\n]*\scommit(\s|$)/;
 const READ_ONLY_AGENTS =/^(Explore|Plan|claude-code-guide|statusline-setup|web-fetch)$/;
+// เหตุผลที่ใส่ตอน lock worktree ที่ด่านสร้างเอง (โหมด worktree-create) ด่านปลดเฉพาะ lock ที่มีเหตุผลนี้
+const WORKTREE_LOCK_REASON = "claude agent at work (project-kickstart)";
 const LOWERCASE_DRIVE_NOTE =
   "path ของ session นี้ขึ้นต้นด้วยไดรฟ์ตัวเล็ก (เปิดจากส่วนขยาย VS Code) บน Claude Code บางรุ่น การเรียก agent แบบ isolation: worktree จะถูกปฏิเสธ " +
   "(Refusing to use … as an isolation worktree) ก่อนเริ่มงานที่ให้ agent ย่อยทำขนานกัน ให้บอกผู้ใช้ว่าควรเปิด session จาก path ที่ขึ้นต้นด้วยไดรฟ์ตัวใหญ่ " +
@@ -129,6 +133,10 @@ if (mode === "isolation-guard") {
   isolationGuard();
   process.exit(0);
 }
+if (mode === "worktree-create") {
+  worktreeCreate();
+  process.exit(0);
+}
 // PreToolUse รันทุกคำสั่ง Bash: ที่ไม่ใช่ git commit ออกทันที ก่อนเรียก git ใดๆ
 if (mode === "commit" && !GIT_COMMIT.test(String(input.tool_input?.command ?? ""))) process.exit(0);
 const root = mode === "subagent-stop" ? subagentWorktree() : projectRoot();
@@ -136,7 +144,10 @@ if (!root) process.exit(0); // nothing of this project to check
 
 if (mode === "format") format();
 else if (mode === "commit") commitGate();
-else if (mode === "stop" || mode === "subagent-stop") stop();
+else if (mode === "stop" || mode === "subagent-stop") {
+  stop();
+  if (mode === "subagent-stop") unlockOwnWorktree();
+}
 
 // ก่อน git commit (PreToolUse): ไม่รันเช็กซ้ำ แค่ดูว่าส่วนที่มีไฟล์เปลี่ยนมีผลเขียวล่าสุดตรงกับไฟล์ตอนนี้หรือไม่ ไม่ตรง = บล็อก
 // ด่านรันตอนจบเทิร์น แต่ commit ระหว่างเทิร์นไม่มีอะไรกั้น (project-kickstart I-043)
@@ -160,7 +171,7 @@ function commitGate() {
 // ทุกครั้งและทิ้ง worktree ที่ locked ไว้ จึงปฏิเสธการเรียกนั้นก่อนสร้าง (project-kickstart I-045 · ถอดออกเมื่อ Claude Code แก้ ดู I-027)
 // ตั้ง KICKSTART_ISOLATION_OK=1 ใน environment เพื่อข้ามเมื่อรุ่นที่ใช้แก้แล้ว
 function isolationGuard() {
-  if (input.tool_input?.isolation !== "worktree" || process.env.KICKSTART_ISOLATION_OK === "1") return;
+  if (input.tool_input?.isolation !== "worktree" || process.env.KICKSTART_ISOLATION_OK === "1" || createsOwnWorktrees()) return;
   if (process.platform !== "win32" || !/^[a-z]:/.test(input.cwd || process.cwd())) return;
   process.stderr.write(
     "ไม่สร้าง worktree แยก: session นี้เปิดจาก path ไดรฟ์ตัวเล็ก (c:\\…) Claude Code บางรุ่นปฏิเสธ isolation: worktree ในกรณีนี้ทุกครั้งและทิ้ง worktree ที่ locked ไว้ " +
@@ -169,11 +180,82 @@ function isolationGuard() {
   process.exit(2);
 }
 
+// โปรเจกต์ต่อ hook WorktreeCreate ไว้หรือไม่ (ด่านสร้าง worktree เอง จึงไม่ต้องปฏิเสธหรือเตือนเรื่องไดรฟ์ตัวเล็ก)
+function createsOwnWorktrees() {
+  const base = process.env.CLAUDE_PROJECT_DIR || input.cwd || process.cwd();
+  return ["settings.json", "settings.local.json"].some((name) => (readJson(path.join(base, ".claude", name)).hooks?.WorktreeCreate ?? []).length > 0);
+}
+
+// WorktreeCreate: แทนการสร้าง worktree ของ Claude Code ทั้งหมด (agent แบบ isolation: worktree · claude --worktree · EnterWorktree)
+// บน Windows ที่ session เปิดจากไดรฟ์ตัวเล็ก Claude Code เทียบ path ของ worktree ที่สร้างเองกับ path ที่ git รายงานแล้วปฏิเสธ
+// ด่านจึงสร้างเองแล้วคืน path ตัวพิมพ์จริง (บรรทัดสุดท้ายของ stdout) · แตกจาก HEAD ของ checkout ที่ session อยู่ · คัดลอกไฟล์ตาม .worktreeinclude
+// worktree ของ agent ย่อยถูก lock ระหว่างทำงาน (subagent-stop ปลดเมื่อด่านของ worktree นั้นผ่าน) · exit ไม่เป็น 0 = Claude Code ถือว่าสร้างไม่สำเร็จ
+function worktreeCreate() {
+  const fail = (text) => {
+    process.stderr.write(`สร้าง worktree ไม่ได้: ${text}\n`);
+    process.exit(1);
+  };
+  const name = String(input.name ?? "");
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name)) fail(`ชื่อ "${name}" ใช้ไม่ได้ (ใช้ได้เฉพาะตัวอักษร ตัวเลข . _ -)`);
+  const here = toplevel(input.cwd) ?? toplevel(process.env.CLAUDE_PROJECT_DIR);
+  if (!here) fail("ไม่พบ git repo ของ session นี้");
+  const main = gitText(here, "worktree", "list", "--porcelain").split("\n")[0].replace(/^worktree /, "");
+  const dir = path.join(main, ".claude", "worktrees", name);
+  if (!existsSync(dir)) {
+    const branch = `worktree-${name}`;
+    let base;
+    try {
+      base = gitText(here, "rev-parse", "--verify", "HEAD");
+      const exists = spawnSync("git", ["-C", main, "rev-parse", "--verify", "--quiet", `refs/heads/${branch}`]).status === 0;
+      // lock เฉพาะ worktree ของ agent ย่อย (ชื่อ agent-…) ซึ่งมี subagent-stop มาปลด · worktree ของ session (claude --worktree) ไม่มีใครปลด จึงไม่ lock
+      const lock = name.startsWith("agent-") ? ["--lock", "--reason", WORKTREE_LOCK_REASON] : [];
+      gitRaw(main, "worktree", "add", ...lock, ...(exists ? [dir, branch] : ["-b", branch, dir, base]));
+    } catch (error) {
+      fail(String(error.stderr || error.message).trim());
+    }
+    // จุดเริ่มของ worktree ให้ด่านใช้หาไฟล์ที่ agent commit ไปแล้ว (worktreeBase)
+    writeFileSync(path.join(gitText(dir, "rev-parse", "--absolute-git-dir"), "CLAUDE_BASE"), base);
+    copyIncluded(here, dir);
+  } else if (!toplevel(dir) || path.resolve(toplevel(dir)) !== path.resolve(dir)) {
+    fail(`${dir} มีอยู่แล้วแต่ไม่ใช่ worktree ของ repo นี้`);
+  }
+  process.stdout.write(`${realpathSync.native(dir)}\n`);
+}
+
+// ไฟล์ที่ git ignore และตรงกับ .worktreeinclude (syntax เดียวกับ .gitignore) คัดลอกจาก checkout ของ session ไป worktree ใหม่
+// Claude Code ไม่ทำขั้นนี้ให้เมื่อโปรเจกต์ต่อ hook WorktreeCreate เอง · คัดลอกไม่ได้ไม่ทำให้การสร้าง worktree ล้ม
+function copyIncluded(from, to) {
+  const list = path.join(from, ".worktreeinclude");
+  if (!existsSync(list)) return;
+  try {
+    const matched = gitRaw(from, "ls-files", "--others", "--ignored", `--exclude-from=${list}`, "-z").split("\0")
+      .filter((f) => f && !f.endsWith("/") && !/(^|\/)(node_modules|\.venv|\.git)\//.test(f) && !f.startsWith(".claude/worktrees/"));
+    if (matched.length === 0) return;
+    const ignored = spawnSync("git", ["-C", from, "-c", "core.quotepath=false", "check-ignore", "-z", "--stdin"], { input: matched.join("\0"), encoding: "utf8" });
+    for (const f of (ignored.stdout ?? "").split("\0").filter(Boolean)) {
+      mkdirSync(path.dirname(path.join(to, f)), { recursive: true });
+      copyFileSync(path.join(from, f), path.join(to, f));
+    }
+  } catch (error) {
+    process.stderr.write(`คัดลอกไฟล์ตาม .worktreeinclude ไม่ครบ: ${error.message}\n`);
+  }
+}
+
+// ปลด lock ที่โหมด worktree-create ใส่ไว้ เมื่อ agent ของ worktree นั้นจบและด่านผ่านแล้ว (lock ของคนอื่นไม่แตะ)
+function unlockOwnWorktree() {
+  try {
+    const reason = readFileSync(path.join(gitText(root, "rev-parse", "--absolute-git-dir"), "locked"), "utf8");
+    if (reason.trim() === WORKTREE_LOCK_REASON) gitRaw(root, "worktree", "unlock", root);
+  } catch {
+    // ไม่ได้ lock หรือไม่ใช่ worktree ที่ด่านสร้าง
+  }
+}
+
 // ส่งข้อความเข้าบริบทเฉพาะเมื่อถึงสถานการณ์ ไม่พิมพ์อะไรเลยเมื่อไม่เข้าเงื่อนไข (session ปกติไม่เสียบริบท)
 function startContext() {
   const here = input.cwd || process.cwd();
   const notes = [];
-  if (mode === "session-start" && process.platform === "win32" && /^[a-z]:/.test(here)) notes.push(LOWERCASE_DRIVE_NOTE);
+  if (mode === "session-start" && process.platform === "win32" && /^[a-z]:/.test(here) && !createsOwnWorktrees()) notes.push(LOWERCASE_DRIVE_NOTE);
   const top = toplevel(here) ?? toplevel(process.env.CLAUDE_PROJECT_DIR);
   const wanted = mode === "subagent-start" ? !READ_ONLY_AGENTS.test(input.agent_type ?? "") : Boolean(top) && isLinkedWorktree(top);
   const rules = top ? path.join(top, WORKTREE_RULES) : null;
