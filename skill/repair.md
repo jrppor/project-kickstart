@@ -1,8 +1,8 @@
 # /kickstart · รายการซ่อมโปรเจกต์ที่ตั้งก่อนชุดรุ่นปัจจุบัน
 
-รุ่นรายการซ่อม: 15 (เพิ่มหรือแก้ข้อไหนในไฟล์นี้ ให้เพิ่มเลขนี้ และแก้เลขเดียวกันในข้อ 3 ของ "ขั้นตอนทุกครั้ง" ใน `SKILL.md`)
+รุ่นรายการซ่อม: 16 (เพิ่มหรือแก้ข้อไหนในไฟล์นี้ ให้เพิ่มเลขนี้ และแก้เลขเดียวกันในข้อ 3 ของ "ขั้นตอนทุกครั้ง" ใน `SKILL.md`)
 
-ตรวจทุกข้อกับ repo ข้อที่ขาดให้ซ่อม บอกผู้ใช้ว่าเพิ่มอะไร แล้ว commit แยก จบแล้วเขียน `รุ่นซ่อม: 15` ต่อท้ายบรรทัดหัวของ `docs/progress.md`
+ตรวจทุกข้อกับ repo ข้อที่ขาดให้ซ่อม บอกผู้ใช้ว่าเพิ่มอะไร แล้ว commit แยก จบแล้วเขียน `รุ่นซ่อม: 16` ต่อท้ายบรรทัดหัวของ `docs/progress.md`
 
 - `CLAUDE.md` ไม่มีหัวข้อ "ลำดับงาน" → คัดลอกจาก `KIT/templates/CLAUDE.md` · ไม่มีกติกา worktree ทั้งในหัวข้อ "เตรียม worktree" ของ `CLAUDE.md` และใน `docs/guides/worktree.md` → คัดลอก `KIT/templates/docs/guides/worktree.md` แล้วเติมค่าจริงของโปรเจกต์
 - `.claude/settings.json` ไม่มี hook `SubagentStop` หรือ `verify.mjs` ไม่มีโหมด `subagent-stop` → agent ใน worktree ไม่ผ่านด่าน
@@ -49,4 +49,7 @@
   `ask` 14 ข้อ: `git -* reset --hard*` `git -* clean -*` `git -* checkout -- *` `git restore *` `git -* restore *` `git stash drop*` `git -* stash drop*` `git -* worktree remove --force*` `docker compose * down -v*` `docker compose down --volumes*` `docker compose * down --volumes*` `docker volume rm *` `Remove-Item * -r*` `Remove-Item -r*` · `deny` 2 ข้อ: `git push * --force` `git push * --force *`
   ห้ามเพิ่ม `PowerShell(git branch -D *)`: กฎ PowerShell จับคู่แบบไม่แยกตัวพิมพ์ จึงจะถาม `git branch -d` ไปด้วย · โปรเจกต์ที่ใช้เครื่องมืออื่นแทน docker compose ให้บอกผู้ใช้
   ก่อนบอกผู้ใช้ย้ายไฟล์ ให้พิสูจน์ไฟล์ proposed ด้วยเทสต์ของแม่แบบโดยไม่แตะไฟล์ของโปรเจกต์: ตั้ง environment `SETTINGS_FILE` เป็น path ของไฟล์ proposed แล้วรัน `node --test "KIT/templates/scripts/settings-rules.test.mjs"` ส่วนที่ขึ้นต้นด้วย "PowerShell" ต้องเขียวครบ
-  หลังผู้ใช้ย้ายไฟล์แล้ว ต่อท้าย `scripts/settings-rules.test.mjs` ด้วยส่วน PowerShell ของแม่แบบ (ตั้งแต่ความเห็น "กฎฝั่ง PowerShell" ลงไป ต้องมี `bashAsk` และ `toRegex` จากข้อ I-040 อยู่ก่อน) แล้วรัน `node --test scripts/settings-rules.test.mjs` ให้เขียว · ต่อเทสต์ก่อนย้าย ด่านจะแดงเพราะกฎยังไม่เข้า · ผู้ใช้ยังไม่ย้ายในรอบนี้ ให้ซ่อมข้ออื่นต่อ แต่ยังไม่เขียน `รุ่นซ่อม: 15` รอบถัดไปจะตรวจข้อนี้ซ้ำ
+  หลังผู้ใช้ย้ายไฟล์แล้ว ต่อท้าย `scripts/settings-rules.test.mjs` ด้วยส่วน PowerShell ของแม่แบบ (ตั้งแต่ความเห็น "กฎฝั่ง PowerShell" ลงไป ต้องมี `bashAsk` และ `toRegex` จากข้อ I-040 อยู่ก่อน) แล้วรัน `node --test scripts/settings-rules.test.mjs` ให้เขียว · ต่อเทสต์ก่อนย้าย ด่านจะแดงเพราะกฎยังไม่เข้า · ผู้ใช้ยังไม่ย้ายในรอบนี้ ให้ซ่อมข้ออื่นต่อ แต่ยังไม่เขียนเลขรุ่นซ่อม รอบถัดไปจะตรวจข้อนี้ซ้ำ
+- hook `PreToolUse` ของโหมด `commit` ใน `.claude/settings.json` มี `matcher` เป็น `Bash` อย่างเดียว (แม่แบบเปลี่ยนเมื่อ 2026-11-28 · I-052 · ลองแล้วว่า `git commit` ผ่านเครื่องมือ PowerShell ไม่ถูก hook นี้กั้น · โปรเจกต์ที่ไม่มีโหมด `commit` ให้ทำข้อ I-043 ก่อน) → เปลี่ยน `matcher` ของ hook นั้นเป็น `Bash|PowerShell` ผ่านไฟล์ `.scratch/settings.proposed.json` ตามข้อ `.claude/settings.json` ห้ามเขียนเอง
+  รอบเดียวกันมีข้ออื่นที่แก้ settings ด้วย (เช่น ข้อ I-042) ให้รวมทุกข้อไว้ในไฟล์ proposed ไฟล์เดียว ผู้ใช้ย้ายครั้งเดียว
+  หลังผู้ใช้ย้ายไฟล์แล้ว ต่อท้าย `scripts/settings-rules.test.mjs` ด้วยเทสต์ "hook ก่อน git commit ครอบทั้ง Bash และ PowerShell" ของแม่แบบ (ถ้ายังไม่มี) แล้วรัน `node --test scripts/settings-rules.test.mjs` ให้เขียว · ผู้ใช้ยังไม่ย้ายในรอบนี้ ให้ซ่อมข้ออื่นต่อ แต่ยังไม่เขียนเลขรุ่นซ่อม
