@@ -1,0 +1,2 @@
+# สคริปต์เตรียม repo ของ evals รันด้วย bash ต้องเป็น LF เสมอ (CRLF ทำให้ bash ล้ม)
+evals/**/*.sh text eol=lf
